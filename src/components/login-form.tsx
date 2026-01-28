@@ -19,16 +19,23 @@ import {
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Package, Wrench, Archive, Building2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Spinner } from "./ui/spinner";
 import { supabase } from "@/lib/supabase/client";
+
+import { setAuthSession } from "@/lib/supabase/auth";
 
 const LoginFormSchema = z.object({
   username: z.string().min(2, "Nama minimal 2 karakter"),
-  password: z.string().min(2, "Password minimal 6 karakter"),
+  password: z.string().min(6, "Password minimal 6 karakter"),
 });
 
 type LoginFormValues = z.infer<typeof LoginFormSchema>;
 
 export function LoginForm() {
+  const [isLoading, setIsLoading] = useState(false);
   const form = useForm<LoginFormValues>({
     defaultValues: {
       username: "",
@@ -36,31 +43,28 @@ export function LoginForm() {
     },
     resolver: zodResolver(LoginFormSchema),
   });
+  const { push } = useRouter();
   const { control, handleSubmit } = form;
-  const onSubmit = handleSubmit(async (data) => {
-    console.log(data);
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("username", data.username)
-      .single();
+  const onSubmit = handleSubmit(async (form) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("verify_user_login", {
+        p_username: form.username,
+        p_password: form.password,
+      });
 
-    if (profileError || !profile) {
-      alert("Username tidak ditemukan");
-      return;
+      if (error || !data?.success) {
+        alert(data?.error || "Login gagal");
+        return;
+      }
+      setAuthSession(data.user);
+      push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan sistem");
+    } finally {
+      setIsLoading(false);
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: profile.email,
-      password: data.password,
-    });
-
-    if (error) {
-      alert("Password salah");
-      return;
-    }
-
-    alert("Login berhasil");
   });
 
   return (
@@ -117,7 +121,20 @@ export function LoginForm() {
                   />
                 </Field>
                 <Field>
-                  <Button type="submit">Login</Button>
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-1">
+                        <Spinner />
+                        <span className="">Loading...</span>
+                      </div>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
                 </Field>
                 <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                   Atau lanjutkan dengan
@@ -157,15 +174,48 @@ export function LoginForm() {
               </FieldGroup>
             </form>
           </Form>
+
           <div className="bg-muted relative hidden md:block">
-            {/* <Image
-              src="/logo-sar"
-              alt="Image"
-              width={100}
-              height={100}
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            /> */}
-            <div className="bg-red-600 w-full h-full"></div>
+            <div className="bg-linear-to-br from-blue-600 to-blue-800 w-full h-full flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10">
+                <div className="grid grid-cols-6 grid-rows-6 h-full w-full gap-4 p-4">
+                  {[...Array(36)].map((_, i) => (
+                    <div key={i} className="border border-white rounded"></div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="absolute top-8 right-12 bg-white/20 p-4 rounded-2xl backdrop-blur-sm animate-pulse">
+                <Package className="w-8 h-8 text-white" />
+              </div>
+
+              <div
+                className="absolute top-18 left-16 bg-white/20 p-3 rounded-xl backdrop-blur-sm animate-pulse"
+                style={{ animationDelay: "0.5s" }}
+              >
+                <Archive className="w-6 h-6 text-white" />
+              </div>
+
+              <div className="absolute bottom-8 left-8 bg-white/20 p-4 rounded-2xl backdrop-blur-sm animate-bounce">
+                <Wrench className="w-8 h-8 text-white" />
+              </div>
+
+              <div className="relative text-white text-center p-6 z-10">
+                <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 border border-white/20 shadow-2xl">
+                  <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+                    <Building2 className="w-12 h-12 text-blue-600" />
+                  </div>
+                  <h2 className="font-bold text-3xl mb-2">SARPRAS</h2>
+                  <p className="text-blue-100 text-sm mb-6">
+                    Sistem Manajemen Sarana & Prasarana
+                  </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-blue-200">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span>System Active</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
