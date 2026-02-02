@@ -36,9 +36,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { ActivityLog } from "@/lib/types";
+import { getActivityLogs } from "@/lib/api/activity-log";
 
 export default function ActivityLogPage() {
   const [data, setData] = useState<ActivityLog[]>([]);
@@ -50,19 +50,8 @@ export default function ActivityLogPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: logs, error } = await supabase
-        .from("activity_log")
-        .select(
-          `
-          *,
-          profile:user_id (id, nama_lengkap, username, role)
-        `,
-        )
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setData(logs || []);
+      const logs = await getActivityLogs();
+      setData(logs as unknown as ActivityLog[]);
     } catch (error) {
       console.error(error);
       toast.error("Gagal mengambil data log");

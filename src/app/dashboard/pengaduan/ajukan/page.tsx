@@ -18,6 +18,7 @@ import {
 import { getSarprasList } from "@/lib/api/sarpras";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { supabase } from "@/lib/supabase/client";
+import { createPengaduan } from "@/lib/api/pengaduan";
 import { Sarpras, Profile } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -54,13 +55,10 @@ export default function AjukanPengaduanPage() {
     if (!user) return;
     setLoading(true);
     try {
-      const { error } = await supabase.from("pengaduan").insert({
+      await createPengaduan({
         user_id: user.id,
         ...values,
-        status: "menunggu",
       });
-
-      if (error) throw error;
 
       toast.success("Pengaduan berhasil diajukan!");
       router.push("/dashboard/pengaduan");

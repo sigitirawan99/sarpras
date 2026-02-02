@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { getCurrentUser } from "@/lib/supabase/auth";
-import { supabase } from "@/lib/supabase/client";
+import { getDashboardStats, getRecentLoans } from "@/lib/api/stats";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import Link from "next/link";
@@ -60,58 +60,19 @@ export default function DashboardPage() {
     setLoading(true);
 
     try {
-      const [sarprasRes, loansRes, complaintsRes, usersRes] = await Promise.all(
-        [
-          supabase
-            .from("sarpras")
-            .select("id, kondisi, stok_tersedia, stok_total"),
-          supabase.from("peminjaman").select("id, status", { count: "exact" }),
-          supabase.from("pengaduan").select("id, status", { count: "exact" }),
-          supabase.from("profiles").select("id", { count: "exact" }),
-        ],
-      );
-
-      const sarprasData = sarprasRes.data || [];
-      const totalStock = sarprasData.reduce(
-        (acc, curr) => acc + curr.stok_total,
-        0,
-      );
-      const availableStock = sarprasData.reduce(
-        (acc, curr) => acc + curr.stok_tersedia,
-        0,
-      );
-
+      const statsData = await getDashboardStats();
       setStats({
-        totalItems: sarprasData.length,
-        stockRate: Math.round((availableStock / totalStock) * 100) || 0,
-        pendingLoans:
-          loansRes.data?.filter((l) => l.status === "menunggu").length || 0,
-        activeComplaints:
-          complaintsRes.data?.filter((c) => c.status !== "selesai").length || 0,
-        totalUsers: usersRes.count || 0,
+        totalItems: statsData.totalItems,
+        stockRate: statsData.stockRate,
+        pendingLoans: statsData.pendingLoans,
+        activeComplaints: statsData.activeComplaints,
+        totalUsers: statsData.totalUsers,
       });
 
-      let loansQuery = supabase
-        .from("peminjaman")
-        .select(
-          "*, profile:user_id(nama_lengkap), detail:peminjaman_detail(sarpras(nama))",
-        )
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      let complaintsQuery = supabase
-        .from("pengaduan")
-        .select("*, profile:user_id(nama_lengkap)")
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (currentUser.role === "pengguna") {
-        loansQuery = loansQuery.eq("user_id", currentUser.id);
-        complaintsQuery = complaintsQuery.eq("user_id", currentUser.id);
-      }
-
-      const [recentL] = await Promise.all([loansQuery, complaintsQuery]);
-      setRecentLoans(recentL.data || []);
+      const recentL = await getRecentLoans(
+        currentUser.role === "pengguna" ? currentUser.id : undefined,
+      );
+      setRecentLoans(recentL as unknown as LoanData[]);
     } catch (error) {
       console.error(error);
     } finally {

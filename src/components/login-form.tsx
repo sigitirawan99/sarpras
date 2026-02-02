@@ -27,6 +27,8 @@ import { supabase } from "@/lib/supabase/client";
 
 import { setAuthSession } from "@/lib/supabase/auth";
 
+import { login as loginApi } from "@/lib/api/auth";
+
 const LoginFormSchema = z.object({
   username: z.string().min(2, "Nama minimal 2 karakter"),
   password: z.string().min(6, "Password minimal 6 karakter"),
@@ -45,23 +47,14 @@ export function LoginForm() {
   });
   const { push } = useRouter();
   const { control, handleSubmit } = form;
-  const onSubmit = handleSubmit(async (form) => {
+  const onSubmit = handleSubmit(async (formValues) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc("verify_user_login", {
-        p_username: form.username,
-        p_password: form.password,
-      });
-
-      if (error || !data?.success) {
-        alert(data?.error || "Login gagal");
-        return;
-      }
-      setAuthSession(data.user);
+      await loginApi(formValues.username, formValues.password);
       push("/dashboard");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Terjadi kesalahan sistem");
+      alert(err.message || "Terjadi kesalahan sistem");
     } finally {
       setIsLoading(false);
     }

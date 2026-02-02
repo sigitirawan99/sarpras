@@ -53,11 +53,6 @@ const menuByRole = {
     { title: "Peminjaman", url: "/dashboard/peminjaman", icon: ClipboardList },
     { title: "Pengembalian", url: "/dashboard/pengembalian", icon: RotateCcw },
     { title: "Pengaduan", url: "/dashboard/pengaduan", icon: AlertTriangle },
-    {
-      title: "Riwayat Aktivitas",
-      url: "/dashboard/activity-log",
-      icon: Activity,
-    },
   ],
   pengguna: [
     { title: "Dashboard", url: "/dashboard", icon: Home },

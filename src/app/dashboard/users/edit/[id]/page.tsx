@@ -9,6 +9,12 @@ import { UserForm, UserFormValues } from "@/components/users/user-form";
 import { supabase } from "@/lib/supabase/client";
 import { Profile } from "@/lib/types";
 import { toast } from "sonner";
+import {
+  getProfileById,
+  updateProfile,
+  changeUserPassword,
+} from "@/lib/api/profiles";
+import { getCurrentUser } from "@/lib/supabase/auth";
 
 export default function EditUserPage({
   params,
@@ -24,14 +30,8 @@ export default function EditUserPage({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (error) throw error;
-        setData(profile as Profile);
+        const profile = await getProfileById(id);
+        setData(profile);
       } catch (error) {
         console.error(error);
         toast.error("Gagal mengambil data user");
@@ -45,31 +45,25 @@ export default function EditUserPage({
   }, [id, router]);
 
   const handleSubmit = async (values: UserFormValues) => {
+    const currentUser = getCurrentUser();
     setLoading(true);
     try {
       // Update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
+      await updateProfile(
+        id,
+        {
           nama_lengkap: values.nama_lengkap,
           role: values.role,
           email: values.email || null,
           no_telepon: values.no_telepon || null,
           is_active: values.is_active,
-        })
-        .eq("id", id);
-
-      if (profileError) throw profileError;
+        },
+        currentUser?.id,
+      );
 
       // Update password if provided
       if (values.password) {
-        // Based on existing logic in users/page.tsx
-        const { error: rpcError } = await supabase.rpc("change_user_password", {
-          p_profile_id: id,
-          p_new_password: values.password,
-          p_old_password: "admin", // Existing logic had this hardcoded limit/placeholder
-        });
-        if (rpcError) throw rpcError;
+        await changeUserPassword(id, values.password);
       }
 
       toast.success("User berhasil diperbarui");

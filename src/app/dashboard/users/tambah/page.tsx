@@ -6,34 +6,34 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserForm, UserFormValues } from "@/components/users/user-form";
-import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { signUpWithUsername } from "@/lib/api/profiles";
+import { getCurrentUser } from "@/lib/supabase/auth";
 
 export default function TambahUserPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (values: UserFormValues) => {
+    const user = getCurrentUser();
     setLoading(true);
     try {
-      // Create new user using RPC
-      const { data: rpcRes, error: rpcError } = await supabase.rpc("create_user_with_username", {
-        p_username: values.username,
-        p_password: values.password || "user123",
-        p_nama_lengkap: values.nama_lengkap,
-        p_role: values.role,
-        p_email: values.email || null,
-        p_no_telepon: values.no_telepon || null
-      });
-
-      if (rpcError || !rpcRes.success) {
-        throw new Error(rpcRes?.error || rpcError?.message || "Gagal menambahkan user");
-      }
+      await signUpWithUsername(
+        {
+          username: values.username,
+          password: values.password,
+          nama_lengkap: values.nama_lengkap,
+          role: values.role,
+          email: values.email,
+          no_telepon: values.no_telepon,
+        },
+        user?.id,
+      );
 
       toast.success("User berhasil ditambahkan");
       router.push("/dashboard/users");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Terjadi kesalahan saat menambahkan user");
     } finally {

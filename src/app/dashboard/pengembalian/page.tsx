@@ -27,8 +27,9 @@ import {
 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase/client";
 import { getCurrentUser } from "@/lib/supabase/auth";
+import { getPeminjamanByCode, processReturn } from "@/lib/api/pengembalian";
+import { uploadFile } from "@/lib/api/storage";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Peminjaman, Profile, PeminjamanDetail, Sarpras } from "@/lib/types";
@@ -68,31 +69,11 @@ export default function PengembalianPage() {
     setLoading(true);
     setLoanData(null);
     try {
-      const { data, error } = await supabase
-        .from("peminjaman")
-        .select(
-          `
-          *,
-          profile:user_id (id, nama_lengkap, username),
-          peminjaman_detail (
-            id,
-            jumlah,
-            sarpras:sarpras_id (id, nama, kode, kondisi, stok_tersedia)
-          )
-        `,
-        )
-        .eq("kode_peminjaman", searchCode.trim())
-        .in("status", ["disetujui", "dipinjam"])
-        .single();
-
-      if (error || !data) {
-        toast.error("Peminjaman tidak ditemukan atau sudah dikembalikan.");
-      } else {
-        setLoanData(data as unknown as PeminjamanWithRelations);
-      }
-    } catch (error) {
+      const data = await getPeminjamanByCode(searchCode);
+      setLoanData(data as unknown as PeminjamanWithRelations);
+    } catch (error: any) {
       console.error(error);
-      toast.error("Gagal mencari data peminjaman");
+      toast.error(error.message || "Gagal mencari data peminjaman");
     } finally {
       setLoading(false);
     }
@@ -108,15 +89,7 @@ export default function PengembalianPage() {
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `returns/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("media")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("media").getPublicUrl(filePath);
+      const publicUrl = await uploadFile("media", filePath, file);
 
       setFoto(publicUrl);
       toast.success("Foto berhasil diunggah");
@@ -135,80 +108,16 @@ export default function PengembalianPage() {
     try {
       const detail = loanData.peminjaman_detail[0];
 
-      // 1. Create Pengembalian record
-      const { data: returnRec, error: rError } = await supabase
-        .from("pengembalian")
-        .insert({
-          peminjaman_id: loanData.id,
-          petugas_id: user.id,
-          catatan: catatan,
-          tanggal_kembali_real: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (rError) throw rError;
-
-      // 2. Create Pengembalian Detail
-      const { error: rdError } = await supabase
-        .from("pengembalian_detail")
-        .insert({
-          pengembalian_id: returnRec.id,
-          sarpras_id: detail.sarpras.id,
-          jumlah: detail.jumlah,
-          kondisi: kondisi,
-          deskripsi: catatan,
-          foto: foto,
-          damage_detected: kondisi !== "baik",
-        });
-
-      if (rdError) throw rdError;
-
-      // 3. Update Peminjaman status
-      const { error: lpError } = await supabase
-        .from("peminjaman")
-        .update({
-          status: "dikembalikan",
-          tanggal_kembali_real: new Date().toISOString(),
-        })
-        .eq("id", loanData.id);
-
-      if (lpError) throw lpError;
-
-      // 4. Update Sarpras condition and stock
-      // Stock goes up back
-      await supabase.rpc("update_stock", {
-        p_sarpras_id: detail.sarpras.id,
-        p_jumlah: detail.jumlah,
-        p_jenis: "kembali",
-        p_referensi_id: returnRec.id,
-      });
-
-      // Update condition if changed
-      const { error: lsError } = await supabase
-        .from("sarpras")
-        .update({ kondisi: kondisi })
-        .eq("id", detail.sarpras.id);
-
-      if (lsError) throw lsError;
-
-      // 5. If LOST, create automatic complaint
-      if (kondisi === "hilang") {
-        await supabase.rpc("create_pengaduan_from_lost_item", {
-          p_sarpras_id: detail.sarpras.id,
-          p_user_id: loanData.user_id,
-          p_peminjaman_id: loanData.id,
-        });
-      }
-
-      // 6. Record to Riwayat Kondisi Alat
-      await supabase.from("riwayat_kondisi_alat").insert({
-        sarpras_id: detail.sarpras.id,
+      await processReturn({
+        peminjaman_id: loanData.id,
+        petugas_id: user.id,
+        catatan: catatan,
         kondisi: kondisi,
-        deskripsi: catatan,
-        sumber: `Pengembalian ${loanData.kode_peminjaman}`,
         foto: foto,
-        created_by: user.id,
+        sarpras_id: detail.sarpras.id,
+        jumlah: detail.jumlah,
+        user_id: loanData.user_id,
+        kode_peminjaman: loanData.kode_peminjaman,
       });
 
       toast.success("Pengembalian berhasil dicatat!");

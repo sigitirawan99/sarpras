@@ -39,7 +39,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
 import { getCurrentUser, setAuthSession } from "@/lib/supabase/auth";
-import { supabase } from "@/lib/supabase/client";
+import {
+  changeUserPassword,
+  updateProfile,
+} from "@/lib/api/profiles";
+import { uploadFile } from "@/lib/api/storage";
 import { toast } from "sonner";
 import { Profile } from "@/lib/types";
 
@@ -81,24 +85,14 @@ export default function ProfilePage() {
 
   const handlePasswordChange = async (values: PasswordFormValues) => {
     if (!user) return;
-    setSubmitting(true);
     try {
-      const { data, error } = await supabase.rpc("change_user_password", {
-        p_profile_id: user.id,
-        p_old_password: values.old_password,
-        p_new_password: values.new_password,
-      });
-
-      if (error || !data?.success) {
-        throw new Error(
-          data?.error || error?.message || "Gagal mengubah password",
-        );
-      }
+      await changeUserPassword(user.id, values.new_password, values.old_password);
 
       toast.success("Password berhasil diubah!");
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      toast.error(error.message || "Gagal mengubah password");
     } finally {
       setSubmitting(false);
     }
@@ -114,23 +108,10 @@ export default function ProfilePage() {
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
       const filePath = `profiles/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("media")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("media").getPublicUrl(filePath);
+      const publicUrl = await uploadFile("media", filePath, file);
 
       // Update profile in DB
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ foto_profil: publicUrl })
-        .eq("id", user.id);
-
-      if (updateError) throw updateError;
+      await updateProfile(user.id, { foto_profil: publicUrl }, user.id);
 
       // Update local session
       const updatedUser = { ...user, foto_profil: publicUrl };

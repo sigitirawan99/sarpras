@@ -9,6 +9,7 @@ import {
   Search,
   MoreVertical,
   Package,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -55,8 +56,8 @@ import {
   PeminjamanDetail,
   Sarpras,
 } from "@/lib/types";
-import { supabase } from "@/lib/supabase/client";
 import { getCurrentUser } from "@/lib/supabase/auth";
+import { getLoans, approveLoan, rejectLoan } from "@/lib/api/peminjaman";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,28 +101,9 @@ export default function PeminjamanPage() {
 
     setLoading(true);
     try {
-      let query = supabase
-        .from("peminjaman")
-        .select(
-          `
-          *,
-          profile:user_id (id, nama_lengkap, username),
-          peminjaman_detail (
-            id,
-            jumlah,
-            sarpras:sarpras_id (id, nama, kode, stok_tersedia)
-          )
-        `,
-        )
-        .order("created_at", { ascending: false });
-
-      // If normal user, only show their own loans
-      if (currentUser.role === "pengguna") {
-        query = query.eq("user_id", currentUser.id);
-      }
-
-      const { data: loans, error } = await query;
-      if (error) throw error;
+      const loans = await getLoans({
+        userId: currentUser.role === "pengguna" ? currentUser.id : undefined,
+      });
       setData((loans as unknown as PeminjamanWithRelations[]) || []);
     } catch (error) {
       console.error(error);
@@ -144,52 +126,13 @@ export default function PeminjamanPage() {
       const detail = loan.peminjaman_detail[0];
       if (!detail) throw new Error("Detail peminjaman tidak ditemukan");
 
-      // 1. Check stock availability again
-      const { data: sarpras, error: sError } = await supabase
-        .from("sarpras")
-        .select("stok_tersedia")
-        .eq("id", detail.sarpras.id)
-        .single();
-
-      if (sError) throw sError;
-      if (sarpras.stok_tersedia < detail.jumlah) {
-        toast.error("Stok sudah tidak mencukupi!");
-        return;
-      }
-
-      // 2. Update status and stock via RPC or transaction
-      const { error: updateError } = await supabase
-        .from("peminjaman")
-        .update({
-          status: "disetujui",
-          petugas_approval_id: user?.id,
-          tanggal_approval: new Date().toISOString(),
-        })
-        .eq("id", loan.id);
-
-      if (updateError) throw updateError;
-
-      // Update Stock (using custom function if available, or manual update)
-      const { error: stockError } = await supabase.rpc("update_stock", {
-        p_sarpras_id: detail.sarpras.id,
-        p_jumlah: -detail.jumlah,
-        p_jenis: "pinjam",
-        p_referensi_id: loan.id,
-      });
-
-      if (stockError) {
-        // Fallback if update_stock RPC fails (not yet implemented in DB)
-        await supabase
-          .from("sarpras")
-          .update({ stok_tersedia: sarpras.stok_tersedia - detail.jumlah })
-          .eq("id", detail.sarpras.id);
-      }
+      await approveLoan(loan.id, detail, user?.id || "");
 
       toast.success("Peminjaman disetujui");
       fetchData();
     } catch (error) {
       console.error(error);
-      toast.error("Gagal menyetujui peminjaman");
+      console.log(error);
     } finally {
       setActionLoading(false);
     }
@@ -200,17 +143,8 @@ export default function PeminjamanPage() {
 
     setActionLoading(true);
     try {
-      const { error } = await supabase
-        .from("peminjaman")
-        .update({
-          status: "ditolak",
-          alasan_penolakan: values.alasan,
-          petugas_approval_id: user?.id,
-          tanggal_approval: new Date().toISOString(),
-        })
-        .eq("id", selectedItem.id);
+      await rejectLoan(selectedItem.id, values.alasan, user?.id || "");
 
-      if (error) throw error;
       toast.success("Peminjaman ditolak");
       setIsRejectOpen(false);
       setSelectedItem(null);
@@ -263,6 +197,15 @@ export default function PeminjamanPage() {
           </Badge>
         );
       case "ditolak":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200"
+          >
+            Ditolak
+          </Badge>
+        );
+      case "dibatalkan":
         return (
           <Badge
             variant="outline"
@@ -415,6 +358,11 @@ export default function PeminjamanPage() {
                         >
                           <Eye className="mr-2 h-4 w-4" /> Lihat Detail
                         </DropdownMenuItem>
+                        {item.status === "menunggu" && (
+                          <DropdownMenuItem>
+                            <X className="mr-2 h-4 w-4" /> Batalkan
+                          </DropdownMenuItem>
+                        )}
 
                         {user?.role !== "pengguna" &&
                           item.status === "menunggu" && (

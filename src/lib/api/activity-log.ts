@@ -1,0 +1,45 @@
+import { supabase } from "../supabase/client";
+
+export type LogPayload = {
+  user_id?: string | null;
+  action: string;
+  module: string;
+  description: string;
+  data_before?: Record<string, unknown> | null;
+  data_after?: Record<string, unknown> | null;
+};
+
+/**
+ * Record a new activity log entry
+ */
+export const recordActivityLog = async (payload: LogPayload) => {
+  try {
+    const { error } = await supabase.from("activity_log").insert({
+      ...payload,
+      user_agent: typeof window !== "undefined" ? window.navigator.userAgent : null,
+      // ip_address is usually handled by database functions or server-side
+    });
+
+    if (error) {
+      console.error("Failed to record activity log:", error);
+    }
+  } catch (error) {
+    console.error("Error in recordActivityLog:", error);
+  }
+};
+
+export const getActivityLogs = async (limit = 100) => {
+  const { data, error } = await supabase
+    .from("activity_log")
+    .select(
+      `
+      *,
+      profile:user_id (id, nama_lengkap, username, role)
+    `,
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
+};

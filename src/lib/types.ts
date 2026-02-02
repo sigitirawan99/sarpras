@@ -56,7 +56,8 @@ export type PeminjamanStatus =
   | "disetujui"
   | "dipinjam"
   | "dikembalikan"
-  | "ditolak";
+  | "ditolak"
+  | "dibatalkan";
 
 export type Peminjaman = {
   id: string;

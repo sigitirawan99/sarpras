@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown, LockIcon, LogOut } from "lucide-react";
+import { ChevronsUpDown, LogOut, User2 } from "lucide-react";
 import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,8 +97,8 @@ export function NavUser() {
                   href="/dashboard/profile"
                   className="flex w-full items-center"
                 >
-                  <LockIcon className="mr-2 h-4 w-4" />
-                  <span>Ganti Password</span>
+                  <User2 className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

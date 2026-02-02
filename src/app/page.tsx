@@ -5,16 +5,16 @@ import { useRouter } from "next/navigation";
 import { getCurrentUser } from "@/lib/supabase/auth";
 
 export default function Home() {
-  const router = useRouter();
+  const { push } = useRouter();
 
   useEffect(() => {
     const user = getCurrentUser();
     if (user) {
-      router.push("/dashboard");
+      push("/dashboard");
     } else {
-      router.push("/sign-in");
+      push("/sign-in");
     }
-  }, [router]);
+  }, [push]);
 
   return (
     <div className="h-screen flex items-center justify-center bg-blue-600 text-white font-black text-2xl animate-pulse">

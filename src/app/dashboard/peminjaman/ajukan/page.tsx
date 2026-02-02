@@ -32,6 +32,7 @@ import { getSarprasById } from "@/lib/api/sarpras";
 import { Sarpras } from "@/lib/types";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { supabase } from "@/lib/supabase/client";
+import { createPeminjaman } from "@/lib/api/peminjaman";
 
 const loanSchema = z.object({
   sarpras_id: z.string().min(1, "Item wajib dipilih"),
@@ -94,32 +95,15 @@ function LoanApplicationContent() {
 
     setSubmitting(true);
     try {
-      // 1. Create Peminjaman
-      const { data: peminjaman, error: pError } = await supabase
-        .from("peminjaman")
-        .insert({
-          user_id: user.id,
-          tanggal_pinjam: values.tanggal_pinjam,
-          tanggal_kembali_estimasi: values.tanggal_kembali_estimasi,
-          tujuan: values.tujuan,
-          status: "menunggu",
-        })
-        .select()
-        .single();
-
-      if (pError) throw pError;
-
-      // 2. Create Peminjaman Detail
-      const { error: dError } = await supabase
-        .from("peminjaman_detail")
-        .insert({
-          peminjaman_id: peminjaman.id,
-          sarpras_id: values.sarpras_id,
-          jumlah: values.jumlah,
-          kondisi_pinjam: sarpras?.kondisi,
-        });
-
-      if (dError) throw dError;
+      await createPeminjaman({
+        user_id: user.id,
+        tanggal_pinjam: values.tanggal_pinjam,
+        tanggal_kembali_estimasi: values.tanggal_kembali_estimasi,
+        tujuan: values.tujuan,
+        sarpras_id: values.sarpras_id,
+        jumlah: values.jumlah,
+        kondisi_pinjam: sarpras?.kondisi,
+      });
 
       toast.success("Permohonan peminjaman berhasil diajukan!");
       router.push("/dashboard/peminjaman");
