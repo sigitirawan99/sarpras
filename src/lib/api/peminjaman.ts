@@ -44,7 +44,7 @@ export const createPeminjaman = async (payload: CreatePeminjamanPayload) => {
     user_id: payload.user_id,
     action: "CREATE_LOAN",
     module: "PEMINJAMAN",
-    description: `User mengajukan peminjaman ${payload.jumlah} unit sarpras`,
+    description: `User mengajukan peminjaman ${payload.jumlah} unit sarpras untuk tujuan: ${payload.tujuan}`,
     data_after: {
       peminjaman_id: peminjaman.id,
       sarpras_id: payload.sarpras_id,
@@ -126,7 +126,7 @@ export const approveLoan = async (loanId: string, detail: any, petugasId: string
     user_id: petugasId,
     action: "APPROVE_LOAN",
     module: "PEMINJAMAN",
-    description: `Peminjaman ${loanId} disetujui`,
+    description: `Peminjaman dengan ID ${loanId} telah disetujui oleh Petugas`,
     data_after: { loanId, status: "disetujui" }
   });
 };
@@ -149,7 +149,7 @@ export const rejectLoan = async (loanId: string, alasan: string, petugasId: stri
     user_id: petugasId,
     action: "REJECT_LOAN",
     module: "PEMINJAMAN",
-    description: `Peminjaman ${loanId} ditolak dengan alasan: ${alasan}`,
+    description: `Peminjaman dengan ID ${loanId} ditolak oleh Petugas. Alasan: ${alasan}`,
     data_after: { loanId, status: "ditolak", alasan }
   });
 };

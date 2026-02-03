@@ -1,6 +1,7 @@
 import { Profile } from "../types";
 
 const AUTH_KEY = "sarpras_auth";
+const COOKIE_NAME = "sarpras_session";
 
 /**
  * Get current logged in user from local storage
@@ -18,19 +19,28 @@ export const getCurrentUser = (): Profile | null => {
 };
 
 /**
- * Persist user data to local storage after login
+ * Persist user data to local storage and cookies after login
  */
 export const setAuthSession = (user: Profile) => {
   if (typeof window === "undefined") return;
   localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+  
+  // Set cookie for middleware access
+  const expires = new Date();
+  expires.setTime(expires.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(JSON.stringify(user))};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
 };
 
 /**
- * Clear user data from local storage
+ * Clear user data from local storage and cookies
  */
 export const clearAuthSession = () => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_KEY);
+  
+  // Clear cookie
+  document.cookie = `${COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  
   window.location.href = "/sign-in";
 };
 

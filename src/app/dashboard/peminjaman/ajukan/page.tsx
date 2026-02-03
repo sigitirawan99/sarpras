@@ -301,10 +301,14 @@ function LoanApplicationContent() {
   );
 }
 
+import { AuthRoleGuard } from "@/components/auth-role-guard";
+
 export default function LoanApplicationPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LoanApplicationContent />
-    </Suspense>
+    <AuthRoleGuard>
+      <Suspense fallback={<div>Loading...</div>}>
+        <LoanApplicationContent />
+      </Suspense>
+    </AuthRoleGuard>
   );
 }

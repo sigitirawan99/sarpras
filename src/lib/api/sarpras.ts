@@ -49,6 +49,7 @@ export const getSarprasById = async (id: string) => {
 
 export const createSarpras = async (payload: {
   nama: string;
+  kode?: string;
   kategori_id: string;
   lokasi_id: string;
   stok_total: number;

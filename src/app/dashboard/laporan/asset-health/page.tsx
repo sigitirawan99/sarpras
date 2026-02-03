@@ -103,6 +103,8 @@ interface HistoryItem {
     | null;
 }
 
+import { AuthRoleGuard } from "@/components/auth-role-guard";
+
 const COLORS = ["#10b981", "#f59e0b", "#f97316", "#ef4444"];
 
 export default function AssetHealthPage() {
@@ -218,245 +220,247 @@ export default function AssetHealthPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Analitik Kesehatan Aset
-          </h1>
-          <p className="text-muted-foreground">
-            Insight mendalam tentang kondisi fisik dan keberlanjutan sarana
-            prasarana.
-          </p>
+    <AuthRoleGuard allowedRoles={["admin", "petugas"]}>
+      <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Analitik Kesehatan Aset
+            </h1>
+            <p className="text-muted-foreground">
+              Insight mendalam tentang kondisi fisik dan keberlanjutan sarana
+              prasarana.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Badge
+              variant="outline"
+              className="bg-blue-50 text-blue-700 py-1 px-4 rounded-full border-blue-100"
+            >
+              <Activity className="h-3 w-3 mr-2" /> Real-time Data
+            </Badge>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Badge
-            variant="outline"
-            className="bg-blue-50 text-blue-700 py-1 px-4 rounded-full border-blue-100"
-          >
-            <Activity className="h-3 w-3 mr-2" /> Real-time Data
-          </Badge>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="Total Aset"
+            value={stats.totalSarpras}
+            icon={<Package className="text-blue-600" />}
+            color="blue"
+            desc="Jumlah seluruh sarpras terdaftar"
+          />
+          <StatCard
+            title="Kondisi Sempurna"
+            value={stats.baik}
+            icon={<CheckCircle2 className="text-green-600" />}
+            color="green"
+            desc={`${Math.round((stats.baik / stats.totalSarpras) * 100)}% dari total aset`}
+          />
+          <StatCard
+            title="Butuh Perbaikan"
+            value={stats.rusakRingan + stats.rusakBerat}
+            icon={<AlertTriangle className="text-orange-600" />}
+            color="orange"
+            desc="Terdapat kerusakan minor/major"
+          />
+          <StatCard
+            title="Aset Hilang"
+            value={stats.hilang}
+            icon={<TrendingDown className="text-red-600" />}
+            color="red"
+            desc="Perlu penggantian segera"
+          />
         </div>
-      </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Aset"
-          value={stats.totalSarpras}
-          icon={<Package className="text-blue-600" />}
-          color="blue"
-          desc="Jumlah seluruh sarpras terdaftar"
-        />
-        <StatCard
-          title="Kondisi Sempurna"
-          value={stats.baik}
-          icon={<CheckCircle2 className="text-green-600" />}
-          color="green"
-          desc={`${Math.round((stats.baik / stats.totalSarpras) * 100)}% dari total aset`}
-        />
-        <StatCard
-          title="Butuh Perbaikan"
-          value={stats.rusakRingan + stats.rusakBerat}
-          icon={<AlertTriangle className="text-orange-600" />}
-          color="orange"
-          desc="Terdapat kerusakan minor/major"
-        />
-        <StatCard
-          title="Aset Hilang"
-          value={stats.hilang}
-          icon={<TrendingDown className="text-red-600" />}
-          color="red"
-          desc="Perlu penggantian segera"
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Condition Distribution Chart */}
-        <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
-          <CardHeader className="bg-gray-50/50">
-            <CardTitle className="text-lg font-black flex items-center gap-2">
-              <FileBarChart className="h-5 w-5 text-blue-600" /> Distribusi
-              Kondisi Aset
-            </CardTitle>
-            <CardDescription>
-              Persentase kondisi aset saat ini berdasarkan data master.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-87.5 pt-6">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={conditionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {conditionData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: "16px",
-                    border: "none",
-                    boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                  }}
-                />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Most Frequently Damaged Items */}
-        <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
-          <CardHeader className="bg-gray-50/50">
-            <CardTitle className="text-lg font-black flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-red-600" /> Aset Paling Sering
-              Bermasalah
-            </CardTitle>
-            <CardDescription>
-              Top 5 aset dengan frekuensi laporan kerusakan tertinggi.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="h-87.5 pt-6 flex flex-col justify-center">
-            {topDamaged.length > 0 ? (
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Condition Distribution Chart */}
+          <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
+            <CardHeader className="bg-gray-50/50">
+              <CardTitle className="text-lg font-black flex items-center gap-2">
+                <FileBarChart className="h-5 w-5 text-blue-600" /> Distribusi
+                Kondisi Aset
+              </CardTitle>
+              <CardDescription>
+                Persentase kondisi aset saat ini berdasarkan data master.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-87.5 pt-6">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={topDamaged}
-                  layout="vertical"
-                  margin={{ left: 40, right: 40 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    width={120}
-                    axisLine={false}
-                    tickLine={false}
-                    style={{ fontSize: "10px", fontWeight: "bold" }}
+                <PieChart>
+                  <Pie
+                    data={conditionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {conditionData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "16px",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
+                    }}
                   />
-                  <Tooltip cursor={{ fill: "#f1f5f9" }} />
-                  <Bar
-                    dataKey="count"
-                    fill="#3b82f6"
-                    radius={[0, 10, 10, 0]}
-                    barSize={20}
-                  />
-                </BarChart>
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="text-center py-20 text-muted-foreground italic">
-                Belum ada data kerusakan.
-              </div>
-            )}
+            </CardContent>
+          </Card>
+
+          {/* Most Frequently Damaged Items */}
+          <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
+            <CardHeader className="bg-gray-50/50">
+              <CardTitle className="text-lg font-black flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-red-600" /> Aset Paling Sering
+                Bermasalah
+              </CardTitle>
+              <CardDescription>
+                Top 5 aset dengan frekuensi laporan kerusakan tertinggi.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="h-87.5 pt-6 flex flex-col justify-center">
+              {topDamaged.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={topDamaged}
+                    layout="vertical"
+                    margin={{ left: 40, right: 40 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" hide />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={120}
+                      axisLine={false}
+                      tickLine={false}
+                      style={{ fontSize: "10px", fontWeight: "bold" }}
+                    />
+                    <Tooltip cursor={{ fill: "#f1f5f9" }} />
+                    <Bar
+                      dataKey="count"
+                      fill="#3b82f6"
+                      radius={[0, 10, 10, 0]}
+                      barSize={20}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-20 text-muted-foreground italic">
+                  Belum ada data kerusakan.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Maintenance History Table */}
+        <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
+          <CardHeader className="bg-blue-900 text-white p-6">
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" /> Riwayat Perubahan Kondisi Aset
+            </CardTitle>
+            <CardDescription className="text-blue-200">
+              Timeline kerusakan dan perbaikan terbaru.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-blue-900/50 hover:bg-blue-900/50 border-blue-800">
+                  <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px] pl-6">
+                    Tanggal
+                  </TableHead>
+                  <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
+                    Aset / Kode
+                  </TableHead>
+                  <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
+                    Kondisi
+                  </TableHead>
+                  <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
+                    Lokasi
+                  </TableHead>
+                  <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
+                    Catatan
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentMaintenance.map((item) => (
+                  <TableRow
+                    key={item.id}
+                    className="hover:bg-gray-50 border-gray-100"
+                  >
+                    <TableCell className="pl-6 text-xs font-medium">
+                      {format(new Date(item.created_at), "dd/MM/yyyy", {
+                        locale: idLocale,
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm">
+                          {item.sarpras?.nama}
+                        </span>
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {item.sarpras?.kode}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`
+                                text-[9px] font-black uppercase tracking-tighter
+                                ${
+                                  item.kondisi === "baik"
+                                    ? "bg-green-50 text-green-700 border-green-200"
+                                    : item.kondisi === "rusak_ringan"
+                                      ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                      : item.kondisi === "rusak_berat"
+                                        ? "bg-orange-50 text-orange-700 border-orange-200"
+                                        : "bg-red-50 text-red-700 border-red-200"
+                                }
+                             `}
+                      >
+                        {item.kondisi.replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <MapPin size={10} />
+                        {(() => {
+                          const lokasi = item.sarpras?.lokasi;
+                          if (!lokasi) return "-";
+                          return Array.isArray(lokasi)
+                            ? lokasi[0]?.nama_lokasi
+                            : lokasi.nama_lokasi;
+                        })()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs italic text-muted-foreground">
+                      <span className="truncate block max-w-50">
+                        &quot;{item.deskripsi || item.sumber || "-"}&quot;
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
-
-      {/* Maintenance History Table */}
-      <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
-        <CardHeader className="bg-blue-900 text-white p-6">
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" /> Riwayat Perubahan Kondisi Aset
-          </CardTitle>
-          <CardDescription className="text-blue-200">
-            Timeline kerusakan dan perbaikan terbaru.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-blue-900/50 hover:bg-blue-900/50 border-blue-800">
-                <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px] pl-6">
-                  Tanggal
-                </TableHead>
-                <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
-                  Aset / Kode
-                </TableHead>
-                <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
-                  Kondisi
-                </TableHead>
-                <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
-                  Lokasi
-                </TableHead>
-                <TableHead className="text-blue-100 font-bold uppercase tracking-wider text-[10px]">
-                  Catatan
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentMaintenance.map((item) => (
-                <TableRow
-                  key={item.id}
-                  className="hover:bg-gray-50 border-gray-100"
-                >
-                  <TableCell className="pl-6 text-xs font-medium">
-                    {format(new Date(item.created_at), "dd/MM/yyyy", {
-                      locale: idLocale,
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm">
-                        {item.sarpras?.nama}
-                      </span>
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        {item.sarpras?.kode}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={`
-                              text-[9px] font-black uppercase tracking-tighter
-                              ${
-                                item.kondisi === "baik"
-                                  ? "bg-green-50 text-green-700 border-green-200"
-                                  : item.kondisi === "rusak_ringan"
-                                    ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                    : item.kondisi === "rusak_berat"
-                                      ? "bg-orange-50 text-orange-700 border-orange-200"
-                                      : "bg-red-50 text-red-700 border-red-200"
-                              }
-                           `}
-                    >
-                      {item.kondisi.replace("_", " ")}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <MapPin size={10} />
-                      {(() => {
-                        const lokasi = item.sarpras?.lokasi;
-                        if (!lokasi) return "-";
-                        return Array.isArray(lokasi)
-                          ? lokasi[0]?.nama_lokasi
-                          : lokasi.nama_lokasi;
-                      })()}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs italic text-muted-foreground">
-                    <span className="truncate block max-w-50">
-                      &quot;{item.deskripsi || item.sumber || "-"}&quot;
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    </AuthRoleGuard>
   );
 }
 
