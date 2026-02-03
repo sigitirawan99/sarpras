@@ -1,9 +1,11 @@
 "use client";
 
 import { Resolver, useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { generateSarprasCode } from "@/lib/utils/sarpras-utils";
 import {
   Form,
   FormControl,
@@ -25,11 +27,12 @@ import { Loader2 } from "lucide-react";
 
 const sarprasSchema = z.object({
   nama: z.string().min(2, "Nama minimal 2 karakter"),
+  kode: z.string().optional(),
   kategori_id: z.string().min(1, "Kategori wajib dipilih"),
   lokasi_id: z.string().min(1, "Lokasi wajib dipilih"),
   stok_total: z.coerce.number().min(1, "Stok minimal 1"),
   kondisi: z.enum(["baik", "rusak_ringan", "rusak_berat", "hilang"]),
-  tanggal_perolehan: z.string().optional(),
+  tanggal_perolehan: z.string().min(1, "tanggal perolehan tidak boleh kosong"),
 });
 
 export type SarprasFormValues = z.infer<typeof sarprasSchema>;
@@ -53,6 +56,7 @@ export function SarprasForm({
     resolver: zodResolver(sarprasSchema) as Resolver<SarprasFormValues>,
     defaultValues: {
       nama: initialData?.nama || "",
+      kode: initialData?.kode || "",
       kategori_id: initialData?.kategori_id || "",
       lokasi_id: initialData?.lokasi_id || "",
       stok_total: initialData?.stok_total || 0,
@@ -60,6 +64,18 @@ export function SarprasForm({
       tanggal_perolehan: initialData?.tanggal_perolehan || "",
     },
   });
+
+  const nama = form.watch("nama");
+  const kategori_id = form.watch("kategori_id");
+  const kondisi = form.watch("kondisi");
+
+  useEffect(() => {
+    if (!initialData && nama && kategori_id) {
+      const kat = kategoriList.find((k) => k.id === kategori_id);
+      const code = generateSarprasCode(nama, kat?.nama || "XYZ", kondisi);
+      form.setValue("kode", code);
+    }
+  }, [nama, kategori_id, kondisi, initialData, kategoriList, form]);
 
   return (
     <Form {...form}>
@@ -73,6 +89,19 @@ export function SarprasForm({
                 <FormLabel>Nama Alat</FormLabel>
                 <FormControl>
                   <Input placeholder="Contoh: Proyektor Epson" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="kode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Kode Sarpras (Otomatis)</FormLabel>
+                <FormControl>
+                  <Input {...field} disabled placeholder="Otomatis" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

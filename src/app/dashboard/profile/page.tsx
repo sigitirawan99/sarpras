@@ -62,6 +62,8 @@ const passwordSchema = z
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
+import { AuthRoleGuard } from "@/components/auth-role-guard";
+
 export default function ProfilePage() {
   const [user, setUser] = useState<Profile>();
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,8 @@ export default function ProfilePage() {
     );
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4 space-y-8">
+    <AuthRoleGuard>
+      <div className="max-w-5xl mx-auto py-8 px-4 space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex items-center gap-6">
           <div className="relative group">
@@ -322,6 +325,7 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+    </AuthRoleGuard>
   );
 }
 

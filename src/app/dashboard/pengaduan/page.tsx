@@ -54,6 +54,8 @@ type PengaduanWithRelations = Pengaduan & {
   >[];
 };
 
+import { AuthRoleGuard } from "@/components/auth-role-guard";
+
 export default function PengaduanPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [data, setData] = useState<PengaduanWithRelations[]>([]);
@@ -196,284 +198,286 @@ export default function PengaduanPage() {
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-blue-900">
-            Pusat Pengaduan
-          </h1>
-          <p className="text-muted-foreground">
-            Laporkan kerusakan atau masalah pada sarana dan prasarana sekolah.
-          </p>
+    <AuthRoleGuard>
+      <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-blue-900">
+              Pusat Pengaduan
+            </h1>
+            <p className="text-muted-foreground">
+              Laporkan kerusakan atau masalah pada sarana dan prasarana sekolah.
+            </p>
+          </div>
+          <Link href="/dashboard/pengaduan/ajukan">
+            <Button className="bg-blue-600 hover:bg-blue-700 h-12 px-8 rounded-xl font-bold gap-2 shadow-lg shadow-blue-200">
+              <Plus className="h-5 w-5" /> Ajukan Pengaduan
+            </Button>
+          </Link>
         </div>
-        <Link href="/dashboard/pengaduan/ajukan">
-          <Button className="bg-blue-600 hover:bg-blue-700 h-12 px-8 rounded-xl font-bold gap-2 shadow-lg shadow-blue-200">
-            <Plus className="h-5 w-5" /> Ajukan Pengaduan
-          </Button>
-        </Link>
-      </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Cari judul, pelapor, atau sarpras..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 h-12 rounded-xl"
-          />
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Cari judul, pelapor, atau sarpras..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 h-12 rounded-xl"
+            />
+          </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="h-64 bg-gray-50 border rounded-2xl animate-pulse"
-            ></div>
-          ))}
-        </div>
-      ) : filteredData.length === 0 ? (
-        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-          <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-bold">Belum Ada Pengaduan</h3>
-          <p className="text-muted-foreground">
-            Semua sistem berjalan lancar atau tidak ada pengaduan ditemukan.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredData.map((complaint) => (
-            <Card
-              key={complaint.id}
-              className="group border-none shadow-lg hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden flex flex-col bg-white"
-            >
-              <div className="relative h-4 w-full">
-                <div
-                  className={`h-full w-full ${
-                    complaint.status === "menunggu"
-                      ? "bg-yellow-400"
-                      : complaint.status === "diproses"
-                        ? "bg-blue-500"
-                        : complaint.status === "selesai"
-                          ? "bg-green-500"
-                          : "bg-red-500"
-                  }`}
-                ></div>
-              </div>
-              <CardHeader className="p-6">
-                <div className="flex justify-between items-start mb-3">
-                  {getPrioritasBadge(complaint.prioritas)}
-                  <span className="text-[10px] text-muted-foreground font-bold font-mono">
-                    {format(new Date(complaint.created_at), "dd/MM/yyyy")}
-                  </span>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="h-64 bg-gray-50 border rounded-2xl animate-pulse"
+              ></div>
+            ))}
+          </div>
+        ) : filteredData.length === 0 ? (
+          <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+            <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold">Belum Ada Pengaduan</h3>
+            <p className="text-muted-foreground">
+              Semua sistem berjalan lancar atau tidak ada pengaduan ditemukan.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredData.map((complaint) => (
+              <Card
+                key={complaint.id}
+                className="group border-none shadow-lg hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden flex flex-col bg-white"
+              >
+                <div className="relative h-4 w-full">
+                  <div
+                    className={`h-full w-full ${
+                      complaint.status === "menunggu"
+                        ? "bg-yellow-400"
+                        : complaint.status === "diproses"
+                          ? "bg-blue-500"
+                          : complaint.status === "selesai"
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                    }`}
+                  ></div>
                 </div>
-                <CardTitle className="text-lg font-black line-clamp-2 leading-tight min-h-14 group-hover:text-blue-600 transition-colors">
-                  {complaint.judul}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 pt-0 flex-1 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-100">
-                    {complaint.profile?.nama_lengkap?.[0] || "U"}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-900 leading-none">
-                      {complaint.profile?.nama_lengkap}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Pelapor</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    <span className="truncate font-medium">
-                      {complaint.lokasi}
+                <CardHeader className="p-6">
+                  <div className="flex justify-between items-start mb-3">
+                    {getPrioritasBadge(complaint.prioritas)}
+                    <span className="text-[10px] text-muted-foreground font-bold font-mono">
+                      {format(new Date(complaint.created_at), "dd/MM/yyyy")}
                     </span>
                   </div>
-                  {complaint.sarpras && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Package className="h-3 w-3" />
-                      <span className="truncate font-medium">
-                        {complaint.sarpras.nama}
-                      </span>
+                  <CardTitle className="text-lg font-black line-clamp-2 leading-tight min-h-14 group-hover:text-blue-600 transition-colors">
+                    {complaint.judul}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0 flex-1 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-xs font-bold text-blue-600 border border-blue-100">
+                      {complaint.profile?.nama_lengkap?.[0] || "U"}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 bg-gray-50/50 flex justify-between items-center border-t">
-                {getStatusBadge(complaint.status)}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full hover:bg-blue-50 hover:text-blue-600 font-bold text-xs"
-                  onClick={() => {
-                    setSelectedItem(complaint);
-                    setIsDetailOpen(true);
-                  }}
-                >
-                  Detail <ChevronRight className="ml-1 h-3 w-3" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* DETAIL DIALOG */}
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-3xl overflow-hidden border-none shadow-2xl">
-          {selectedItem && (
-            <div className="flex flex-col">
-              {/* Header Image/Pattern */}
-              <div className="h-48 bg-blue-900 relative flex items-center justify-center p-6 text-white text-center overflow-hidden">
-                {selectedItem.foto ? null : (
-                  <div className="absolute inset-0 opacity-10 flex flex-wrap gap-4 p-4">
-                    {[...Array(20)].map((_, i) => (
-                      <MessageSquare key={i} className="w-12 h-12" />
-                    ))}
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 leading-none">
+                        {complaint.profile?.nama_lengkap}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Pelapor</p>
+                    </div>
                   </div>
-                )}
-                <div className="relative z-10 space-y-2">
-                  {getPrioritasBadge(selectedItem.prioritas)}
-                  <h2 className="text-2xl font-black leading-tight drop-shadow-md">
-                    {selectedItem.judul}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="p-8 grid md:grid-cols-5 gap-8">
-                <div className="md:col-span-3 space-y-6">
-                  <section>
-                    <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">
-                      Deskripsi Masalah
-                    </h3>
-                    <p className="text-gray-700 leading-relaxed text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100 italic">
-                      &quot;{selectedItem.deskripsi}&quot;
-                    </p>
-                  </section>
-
-                  <section>
-                    <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">
-                      Timeline & Tindak Lanjut
-                    </h3>
-                    <div className="space-y-4 pl-4 border-l-2 border-blue-100">
-                      {/* Original Submission */}
-                      <div className="relative">
-                        <div className="absolute -left-[1.35rem] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
-                        <div className="space-y-1">
-                          <p className="text-xs font-bold text-gray-900">
-                            Pengaduan Diterima
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {format(
-                              new Date(selectedItem.created_at),
-                              "dd MMM yyyy HH:mm",
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Progress Updates */}
-                      {selectedItem.progress?.map((p) => (
-                        <div key={p.id} className="relative">
-                          <div
-                            className={`absolute -left-[1.35rem] top-1 w-2.5 h-2.5 rounded-full ${
-                              p.status === "selesai"
-                                ? "bg-green-500"
-                                : "bg-blue-400"
-                            }`}
-                          ></div>
-                          <div className="space-y-1 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                            <div className="flex justify-between items-center">
-                              <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">
-                                {p.status}
-                              </p>
-                              <span className="text-[9px] font-bold text-muted-foreground">
-                                {format(new Date(p.created_at), "dd MMM HH:mm")}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600 leading-snug">
-                              {p.catatan}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-
-                <div className="md:col-span-2 space-y-6">
-                  <section className="bg-gray-50 p-4 rounded-3xl border border-gray-200">
-                    <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">
-                      Informasi Pelapor
-                    </h3>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-blue-600 border border-blue-50">
-                        <UserIcon size={20} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-gray-900 leading-none">
-                          {selectedItem.profile?.nama_lengkap}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          @{selectedItem.profile?.username}
-                        </p>
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* Staff Actions */}
-                  {user?.role !== "pengguna" &&
-                    selectedItem.status !== "selesai" && (
-                      <section className="space-y-4 pt-4 border-t">
-                        <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest text-center">
-                          Update Progress
-                        </h3>
-                        <UpdateStatusForm
-                          currentStatus={selectedItem.status}
-                          onUpdate={(status, catatan) =>
-                            updateStatus(selectedItem.id, status, catatan)
-                          }
-                        />
-                      </section>
-                    )}
 
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <MapPin size={12} className="text-red-400" />
-                      <span className="font-bold text-gray-500">
-                        {selectedItem.lokasi}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      <span className="truncate font-medium">
+                        {complaint.lokasi}
                       </span>
                     </div>
-                    {selectedItem.sarpras && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Package size={12} className="text-blue-400" />
-                        <span className="font-bold text-gray-500">
-                          {selectedItem.sarpras.nama}
+                    {complaint.sarpras && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Package className="h-3 w-3" />
+                        <span className="truncate font-medium">
+                          {complaint.sarpras.nama}
                         </span>
                       </div>
                     )}
                   </div>
+                </CardContent>
+                <CardFooter className="p-4 bg-gray-50/50 flex justify-between items-center border-t">
+                  {getStatusBadge(complaint.status)}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-full hover:bg-blue-50 hover:text-blue-600 font-bold text-xs"
+                    onClick={() => {
+                      setSelectedItem(complaint);
+                      setIsDetailOpen(true);
+                    }}
+                  >
+                    Detail <ChevronRight className="ml-1 h-3 w-3" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* DETAIL DIALOG */}
+        <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-3xl overflow-hidden border-none shadow-2xl">
+            {selectedItem && (
+              <div className="flex flex-col">
+                {/* Header Image/Pattern */}
+                <div className="h-48 bg-blue-900 relative flex items-center justify-center p-6 text-white text-center overflow-hidden">
+                  {selectedItem.foto ? null : (
+                    <div className="absolute inset-0 opacity-10 flex flex-wrap gap-4 p-4">
+                      {[...Array(20)].map((_, i) => (
+                        <MessageSquare key={i} className="w-12 h-12" />
+                      ))}
+                    </div>
+                  )}
+                  <div className="relative z-10 space-y-2">
+                    {getPrioritasBadge(selectedItem.prioritas)}
+                    <h2 className="text-2xl font-black leading-tight drop-shadow-md">
+                      {selectedItem.judul}
+                    </h2>
+                  </div>
+                </div>
+
+                <div className="p-8 grid md:grid-cols-5 gap-8">
+                  <div className="md:col-span-3 space-y-6">
+                    <section>
+                      <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">
+                        Deskripsi Masalah
+                      </h3>
+                      <p className="text-gray-700 leading-relaxed text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100 italic">
+                        &quot;{selectedItem.deskripsi}&quot;
+                      </p>
+                    </section>
+
+                    <section>
+                      <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-3">
+                        Timeline & Tindak Lanjut
+                      </h3>
+                      <div className="space-y-4 pl-4 border-l-2 border-blue-100">
+                        {/* Original Submission */}
+                        <div className="relative">
+                          <div className="absolute -left-[1.35rem] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-bold text-gray-900">
+                              Pengaduan Diterima
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {format(
+                                new Date(selectedItem.created_at),
+                                "dd MMM yyyy HH:mm",
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Progress Updates */}
+                        {selectedItem.progress?.map((p) => (
+                          <div key={p.id} className="relative">
+                            <div
+                              className={`absolute -left-[1.35rem] top-1 w-2.5 h-2.5 rounded-full ${
+                                p.status === "selesai"
+                                  ? "bg-green-500"
+                                  : "bg-blue-400"
+                              }`}
+                            ></div>
+                            <div className="space-y-1 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                              <div className="flex justify-between items-center">
+                                <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">
+                                  {p.status}
+                                </p>
+                                <span className="text-[9px] font-bold text-muted-foreground">
+                                  {format(new Date(p.created_at), "dd MMM HH:mm")}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 leading-snug">
+                                {p.catatan}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-6">
+                    <section className="bg-gray-50 p-4 rounded-3xl border border-gray-200">
+                      <h3 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">
+                        Informasi Pelapor
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center text-blue-600 border border-blue-50">
+                          <UserIcon size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-gray-900 leading-none">
+                            {selectedItem.profile?.nama_lengkap}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            @{selectedItem.profile?.username}
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Staff Actions */}
+                    {user?.role !== "pengguna" &&
+                      selectedItem.status !== "selesai" && (
+                        <section className="space-y-4 pt-4 border-t">
+                          <h3 className="text-[10px] font-black uppercase text-blue-600 tracking-widest text-center">
+                            Update Progress
+                          </h3>
+                          <UpdateStatusForm
+                            currentStatus={selectedItem.status}
+                            onUpdate={(status, catatan) =>
+                              updateStatus(selectedItem.id, status, catatan)
+                            }
+                          />
+                        </section>
+                      )}
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <MapPin size={12} className="text-red-400" />
+                        <span className="font-bold text-gray-500">
+                          {selectedItem.lokasi}
+                        </span>
+                      </div>
+                      {selectedItem.sarpras && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <Package size={12} className="text-blue-400" />
+                          <span className="font-bold text-gray-500">
+                            {selectedItem.sarpras.nama}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gray-50 flex justify-end">
+                  <Button
+                    variant="outline"
+                    className="rounded-xl px-10 border-gray-300 font-bold"
+                    onClick={() => setIsDetailOpen(false)}
+                  >
+                    Kembali
+                  </Button>
                 </div>
               </div>
-
-              <div className="p-4 bg-gray-50 flex justify-end">
-                <Button
-                  variant="outline"
-                  className="rounded-xl px-10 border-gray-300 font-bold"
-                  onClick={() => setIsDetailOpen(false)}
-                >
-                  Kembali
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AuthRoleGuard>
   );
 }
 

@@ -47,6 +47,8 @@ interface LoanData {
   detail?: Array<{ sarpras?: { nama: string } }>;
 }
 
+import { AuthRoleGuard } from "@/components/auth-role-guard";
+
 export default function DashboardPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -93,223 +95,225 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter text-gray-900">
-            Halo,{" "}
-            <span className="text-blue-600">
-              {user?.nama_lengkap?.split(" ")[0]}
-            </span>
-            ! 👋
-          </h1>
-          <p className="text-muted-foreground font-medium">
-            Selamat datang di panel kontrol{" "}
-            <span className="font-bold text-blue-900">SARPRAS</span>. Berikut
-            ringkasan hari ini.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-              {format(new Date(), "EEEE", { locale: idLocale })}
-            </p>
-            <p className="text-sm font-bold text-gray-900">
-              {format(new Date(), "dd MMMM yyyy", { locale: idLocale })}
+    <AuthRoleGuard>
+      <div className="space-y-8 animate-in fade-in duration-700">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter text-gray-900">
+              Halo,{" "}
+              <span className="text-blue-600">
+                {user?.nama_lengkap?.split(" ")[0]}
+              </span>
+              ! 👋
+            </h1>
+            <p className="text-muted-foreground font-medium">
+              Selamat datang di panel kontrol{" "}
+              <span className="font-bold text-blue-900">SARPRAS</span>. Berikut
+              ringkasan hari ini.
             </p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
-            <Activity />
-          </div>
-        </div>
-      </div>
-
-      {/* Grid Utama Statistik */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardStatCard
-          title="Aset Tersedia"
-          value={(stats?.stockRate ?? 0) + "%"}
-          icon={<Package className="text-blue-600" />}
-          desc="Persentase stok barang siap pinjam"
-          color="blue"
-          footer={
-            <Progress
-              value={stats?.stockRate ?? 0}
-              className="h-1 bg-blue-100"
-            />
-          }
-        />
-        <DashboardStatCard
-          title="Peminjaman Baru"
-          value={stats?.pendingLoans ?? 0}
-          icon={<ClipboardList className="text-orange-600" />}
-          desc="Pengajuan menunggu persetujuan"
-          color="orange"
-          action="/dashboard/peminjaman"
-        />
-        <DashboardStatCard
-          title="Pengaduan Aktif"
-          value={stats?.activeComplaints ?? 0}
-          icon={<AlertTriangle className="text-red-600" />}
-          desc="Laporan kerusakan belum selesai"
-          color="red"
-          action="/dashboard/pengaduan"
-        />
-        <DashboardStatCard
-          title="Total Pengguna"
-          value={stats?.totalUsers ?? 0}
-          icon={<Users className="text-green-600" />}
-          desc="Anggota terdaftar di sistem"
-          color="green"
-        />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        {/* Recent Loans */}
-        <Card className="lg:col-span-2 border-none shadow-xl rounded-3xl overflow-hidden">
-          <CardHeader className="bg-gray-50/50 flex flex-row items-center justify-between border-b border-gray-100 p-6">
-            <div>
-              <CardTitle className="text-lg font-black flex items-center gap-2">
-                <Clock className="text-blue-600 h-5 w-5" /> Aktivitas Peminjaman
-              </CardTitle>
-              <CardDescription>
-                Daftar transaksi peminjaman terbaru.
-              </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                {format(new Date(), "EEEE", { locale: idLocale })}
+              </p>
+              <p className="text-sm font-bold text-gray-900">
+                {format(new Date(), "dd MMMM yyyy", { locale: idLocale })}
+              </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="rounded-full text-blue-600 font-bold"
-            >
-              <Link href="/dashboard/peminjaman">
-                Semua <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {recentLoans.length > 0 ? (
-                recentLoans.map((loan) => (
-                  <div
-                    key={loan.id}
-                    className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100">
-                        {loan.detail?.[0]?.sarpras?.nama?.[0] || "A"}
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm text-gray-900">
-                          {loan.detail?.[0]?.sarpras?.nama || "Item"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                          {loan.profile?.nama_lengkap} •{" "}
-                          {format(new Date(loan.created_at), "dd MMM")}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`
-                           text-[9px] font-black uppercase tracking-tighter
-                           ${
-                             loan.status === "menunggu"
-                               ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                               : loan.status === "disetujui"
-                                 ? "bg-blue-50 text-blue-700 border-blue-200"
-                                 : loan.status === "dikembalikan"
-                                   ? "bg-green-50 text-green-700 border-green-200"
-                                   : "bg-gray-50 text-gray-500 border-gray-200"
-                           }
-                        `}
+            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
+              <Activity />
+            </div>
+          </div>
+        </div>
+
+        {/* Grid Utama Statistik */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <DashboardStatCard
+            title="Aset Tersedia"
+            value={(stats?.stockRate ?? 0) + "%"}
+            icon={<Package className="text-blue-600" />}
+            desc="Persentase stok barang siap pinjam"
+            color="blue"
+            footer={
+              <Progress
+                value={stats?.stockRate ?? 0}
+                className="h-1 bg-blue-100"
+              />
+            }
+          />
+          <DashboardStatCard
+            title="Peminjaman Baru"
+            value={stats?.pendingLoans ?? 0}
+            icon={<ClipboardList className="text-orange-600" />}
+            desc="Pengajuan menunggu persetujuan"
+            color="orange"
+            action="/dashboard/peminjaman"
+          />
+          <DashboardStatCard
+            title="Pengaduan Aktif"
+            value={stats?.activeComplaints ?? 0}
+            icon={<AlertTriangle className="text-red-600" />}
+            desc="Laporan kerusakan belum selesai"
+            color="red"
+            action="/dashboard/pengaduan"
+          />
+          <DashboardStatCard
+            title="Total Pengguna"
+            value={stats?.totalUsers ?? 0}
+            icon={<Users className="text-green-600" />}
+            desc="Anggota terdaftar di sistem"
+            color="green"
+          />
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Recent Loans */}
+          <Card className="lg:col-span-2 border-none shadow-xl rounded-3xl overflow-hidden">
+            <CardHeader className="bg-gray-50/50 flex flex-row items-center justify-between border-b border-gray-100 p-6">
+              <div>
+                <CardTitle className="text-lg font-black flex items-center gap-2">
+                  <Clock className="text-blue-600 h-5 w-5" /> Aktivitas Peminjaman
+                </CardTitle>
+                <CardDescription>
+                  Daftar transaksi peminjaman terbaru.
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="rounded-full text-blue-600 font-bold"
+              >
+                <Link href="/dashboard/peminjaman">
+                  Semua <ChevronRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {recentLoans.length > 0 ? (
+                  recentLoans.map((loan) => (
+                    <div
+                      key={loan.id}
+                      className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between"
                     >
-                      {loan.status}
-                    </Badge>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold border border-blue-100">
+                          {loan.detail?.[0]?.sarpras?.nama?.[0] || "A"}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-gray-900">
+                            {loan.detail?.[0]?.sarpras?.nama || "Item"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                            {loan.profile?.nama_lengkap} •{" "}
+                            {format(new Date(loan.created_at), "dd MMM")}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`
+                             text-[9px] font-black uppercase tracking-tighter
+                             ${
+                               loan.status === "menunggu"
+                                 ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                                 : loan.status === "disetujui"
+                                   ? "bg-blue-50 text-blue-700 border-blue-200"
+                                   : loan.status === "dikembalikan"
+                                     ? "bg-green-50 text-green-700 border-green-200"
+                                     : "bg-gray-50 text-gray-500 border-gray-200"
+                             }
+                          `}
+                      >
+                        {loan.status}
+                      </Badge>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-10 text-center text-muted-foreground italic text-sm">
+                    Masih sepi, belum ada aktivitas.
                   </div>
-                ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions / Shortcuts */}
+          <div className="space-y-6">
+            <h3 className="text-sm font-black uppercase text-gray-400 tracking-[0.2em] pl-2">
+              Akses Cepat
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+              {user?.role === "pengguna" ? (
+                <>
+                  <QuickLinkCard
+                    title="Pinjam Barang"
+                    desc="Ajukan peminjaman sarpras"
+                    icon={<ClipboardList />}
+                    href="/dashboard/sarpras-tersedia"
+                    color="blue"
+                  />
+                  <QuickLinkCard
+                    title="Buat Pengaduan"
+                    desc="Laporkan masalah alat"
+                    icon={<AlertTriangle />}
+                    href="/dashboard/pengaduan"
+                    color="red"
+                  />
+                </>
               ) : (
-                <div className="p-10 text-center text-muted-foreground italic text-sm">
-                  Masih sepi, belum ada aktivitas.
-                </div>
+                <>
+                  <QuickLinkCard
+                    title="Data Sarpras"
+                    desc="Kelola inventaris sekolah"
+                    icon={<Package />}
+                    href="/dashboard/sarpras"
+                    color="blue"
+                  />
+                  <QuickLinkCard
+                    title="Scan Pengembalian"
+                    desc="Proses barang kembali"
+                    icon={<RotateCcw />}
+                    href="/dashboard/pengembalian"
+                    color="green"
+                  />
+                  <QuickLinkCard
+                    title="Lihat Laporan"
+                    desc="Analisis kesehatan aset"
+                    icon={<TrendingUp />}
+                    href="/dashboard/laporan/asset-health"
+                    color="orange"
+                  />
+                </>
               )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Quick Actions / Shortcuts */}
-        <div className="space-y-6">
-          <h3 className="text-sm font-black uppercase text-gray-400 tracking-[0.2em] pl-2">
-            Akses Cepat
-          </h3>
-          <div className="grid grid-cols-1 gap-4">
-            {user?.role === "pengguna" ? (
-              <>
-                <QuickLinkCard
-                  title="Pinjam Barang"
-                  desc="Ajukan peminjaman sarpras"
-                  icon={<ClipboardList />}
-                  href="/dashboard/sarpras-tersedia"
-                  color="blue"
-                />
-                <QuickLinkCard
-                  title="Buat Pengaduan"
-                  desc="Laporkan masalah alat"
-                  icon={<AlertTriangle />}
-                  href="/dashboard/pengaduan"
-                  color="red"
-                />
-              </>
-            ) : (
-              <>
-                <QuickLinkCard
-                  title="Data Sarpras"
-                  desc="Kelola inventaris sekolah"
-                  icon={<Package />}
-                  href="/dashboard/sarpras"
-                  color="blue"
-                />
-                <QuickLinkCard
-                  title="Scan Pengembalian"
-                  desc="Proses barang kembali"
-                  icon={<RotateCcw />}
-                  href="/dashboard/pengembalian"
-                  color="green"
-                />
-                <QuickLinkCard
-                  title="Lihat Laporan"
-                  desc="Analisis kesehatan aset"
-                  icon={<TrendingUp />}
-                  href="/dashboard/laporan/asset-health"
-                  color="orange"
-                />
-              </>
-            )}
-          </div>
-
-          {/* Support Box */}
-          <div className="bg-linear-to-br from-blue-600 to-blue-800 rounded-3xl p-6 text-white shadow-xl shadow-blue-200 relative overflow-hidden">
-            <div className="relative z-10">
-              <h3 className="font-black text-lg mb-2">Butuh Bantuan?</h3>
-              <p className="text-blue-100 text-xs leading-relaxed mb-6">
-                Jika mengalami kendala sistem, hubungi administrator IT Sekolah
-                segera.
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50 border-none px-6"
-              >
-                Hubungi Admin
-              </Button>
-            </div>
-            <div className="absolute -bottom-4 -right-4 opacity-10">
-              <Activity className="w-32 h-32" />
+            {/* Support Box */}
+            <div className="bg-linear-to-br from-blue-600 to-blue-800 rounded-3xl p-6 text-white shadow-xl shadow-blue-200 relative overflow-hidden">
+              <div className="relative z-10">
+                <h3 className="font-black text-lg mb-2">Butuh Bantuan?</h3>
+                <p className="text-blue-100 text-xs leading-relaxed mb-6">
+                  Jika mengalami kendala sistem, hubungi administrator IT Sekolah
+                  segera.
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50 border-none px-6"
+                >
+                  Hubungi Admin
+                </Button>
+              </div>
+              <div className="absolute -bottom-4 -right-4 opacity-10">
+                <Activity className="w-32 h-32" />
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </AuthRoleGuard>
   );
 }
 

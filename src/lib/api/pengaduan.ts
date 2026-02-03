@@ -24,7 +24,7 @@ export const createPengaduan = async (payload: CreatePengaduanPayload) => {
     user_id: payload.user_id,
     action: "CREATE_COMPLAINT",
     module: "PENGADUAN",
-    description: `User membuat pengaduan baru: ${payload.judul}`,
+    description: `Pengaduan baru dibuat: "${payload.judul}" dengan prioritas ${payload.prioritas}`,
     data_after: {
       pengaduan_id: data.id,
       judul: payload.judul,

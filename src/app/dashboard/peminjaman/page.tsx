@@ -75,6 +75,8 @@ type PeminjamanWithRelations = Peminjaman & {
   })[];
 };
 
+import { AuthRoleGuard } from "@/components/auth-role-guard";
+
 export default function PeminjamanPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [data, setData] = useState<PeminjamanWithRelations[]>([]);
@@ -229,7 +231,8 @@ export default function PeminjamanPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <AuthRoleGuard>
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Data Peminjaman</h1>
@@ -549,6 +552,7 @@ export default function PeminjamanPage() {
         </DialogContent>
       </Dialog>
     </div>
+  </AuthRoleGuard>
   );
 }
 
