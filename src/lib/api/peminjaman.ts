@@ -11,8 +11,88 @@ export type CreatePeminjamanPayload = {
   kondisi_pinjam?: string;
 };
 
+interface LoanDetail {
+  sarpras: {
+    id: string;
+  };
+  jumlah: number;
+}
+
+export const getEffectiveStock = async (sarprasId: string) => {
+  const { data: sarpras, error: sError } = await supabase
+    .from("sarpras")
+    .select("stok_tersedia")
+    .eq("id", sarprasId)
+    .single();
+
+  if (sError) throw sError;
+
+  const { data: pendingRequests, error: pReqError } = await supabase
+    .from("peminjaman_detail")
+    .select("jumlah, peminjaman(status)")
+    .eq("sarpras_id", sarprasId)
+    .filter("peminjaman.status", "eq", "menunggu");
+
+  if (pReqError) throw pReqError;
+
+  const totalPending = (pendingRequests || []).reduce((acc, curr) => {
+    if ((curr.peminjaman as any)?.status === "menunggu") {
+      return acc + curr.jumlah;
+    }
+    return acc;
+  }, 0);
+
+  return {
+    stok_tersedia: sarpras.stok_tersedia,
+    total_pending: totalPending,
+    effective_stock: sarpras.stok_tersedia - totalPending,
+  };
+};
+
 export const createPeminjaman = async (payload: CreatePeminjamanPayload) => {
-  // 1. Create Peminjaman
+  // 1. Validation: Date
+  const pinjam = new Date(payload.tanggal_pinjam);
+  const kembali = new Date(payload.tanggal_kembali_estimasi);
+  if (kembali < pinjam) {
+    throw new Error("Estimasi pengembalian tidak boleh sebelum tanggal pinjam");
+  }
+
+  // 2. Validation: Effective Stock (Total Stock - (Borrowed + Pending))
+  // a. Get current sarpras stock_tersedia
+  const { data: sarpras, error: sError } = await supabase
+    .from("sarpras")
+    .select("stok_tersedia")
+    .eq("id", payload.sarpras_id)
+    .single();
+
+  if (sError) throw sError;
+
+  // b. Calculate pending requests for this sarpras
+  const { data: pendingRequests, error: pReqError } = await supabase
+    .from("peminjaman_detail")
+    .select("jumlah, peminjaman(status)")
+    .eq("sarpras_id", payload.sarpras_id)
+    .filter("peminjaman.status", "eq", "menunggu");
+
+  if (pReqError) throw pReqError;
+
+  const totalPending = (pendingRequests || []).reduce((acc, curr) => {
+    // Filter double check because Supabase nested filtering can be tricky
+    if ((curr.peminjaman as any)?.status === "menunggu") {
+      return acc + curr.jumlah;
+    }
+    return acc;
+  }, 0);
+
+  const effectiveStock = sarpras.stok_tersedia - totalPending;
+
+  if (effectiveStock < payload.jumlah) {
+    throw new Error(
+      `Stok tidak mencukupi untuk permintaan baru. Tersedia: ${sarpras.stok_tersedia}, Sudah dipesan orang lain: ${totalPending}. Stok efektif: ${effectiveStock}`,
+    );
+  }
+
+  // 3. Create Peminjaman
   const { data: peminjaman, error: pError } = await supabase
     .from("peminjaman")
     .insert({
@@ -27,19 +107,17 @@ export const createPeminjaman = async (payload: CreatePeminjamanPayload) => {
 
   if (pError) throw pError;
 
-  // 2. Create Peminjaman Detail
-  const { error: dError } = await supabase
-    .from("peminjaman_detail")
-    .insert({
-      peminjaman_id: peminjaman.id,
-      sarpras_id: payload.sarpras_id,
-      jumlah: payload.jumlah,
-      kondisi_pinjam: payload.kondisi_pinjam,
-    });
+  // 4. Create Peminjaman Detail
+  const { error: dError } = await supabase.from("peminjaman_detail").insert({
+    peminjaman_id: peminjaman.id,
+    sarpras_id: payload.sarpras_id,
+    jumlah: payload.jumlah,
+    kondisi_pinjam: payload.kondisi_pinjam,
+  });
 
   if (dError) throw dError;
 
-  // 3. Record Activity Log
+  // 5. Record Activity Log
   await recordActivityLog({
     user_id: payload.user_id,
     action: "CREATE_LOAN",
@@ -48,8 +126,8 @@ export const createPeminjaman = async (payload: CreatePeminjamanPayload) => {
     data_after: {
       peminjaman_id: peminjaman.id,
       sarpras_id: payload.sarpras_id,
-      jumlah: payload.jumlah
-    }
+      jumlah: payload.jumlah,
+    },
   });
 
   return peminjaman;
@@ -80,20 +158,38 @@ export const getLoans = async (filter?: { userId?: string }) => {
   return data;
 };
 
-export const approveLoan = async (loanId: string, detail: any, petugasId: string) => {
-  // 1. Check stock
+export const approveLoan = async (
+  loanId: string,
+  detail: LoanDetail,
+  petugasId: string,
+) => {
+  // 1. Check current status
+  const { data: loan, error: lError } = await supabase
+    .from("peminjaman")
+    .select("status")
+    .eq("id", loanId)
+    .single();
+
+  if (lError) throw lError;
+  if (loan.status !== "menunggu") {
+    throw new Error(`Peminjaman ini sudah berstatus ${loan.status}`);
+  }
+
+  // 2. Check stock
   const { data: sarpras, error: sError } = await supabase
     .from("sarpras")
-    .select("stok_tersedia")
+    .select("stok_tersedia, nama")
     .eq("id", detail.sarpras.id)
     .single();
 
   if (sError) throw sError;
   if (sarpras.stok_tersedia < detail.jumlah) {
-    throw new Error("Stok sudah tidak mencukupi!");
+    throw new Error(
+      `Stok ${sarpras.nama} tidak mencukupi untuk disetujui! Tersedia: ${sarpras.stok_tersedia}, Diminta: ${detail.jumlah}`,
+    );
   }
 
-  // 2. Update status
+  // 3. Update status
   const { error: updateError } = await supabase
     .from("peminjaman")
     .update({
@@ -105,7 +201,7 @@ export const approveLoan = async (loanId: string, detail: any, petugasId: string
 
   if (updateError) throw updateError;
 
-  // 3. Update stock
+  // 4. Update stock
   const { error: stockError } = await supabase.rpc("update_stock", {
     p_sarpras_id: detail.sarpras.id,
     p_jumlah: -detail.jumlah,
@@ -114,7 +210,7 @@ export const approveLoan = async (loanId: string, detail: any, petugasId: string
   });
 
   if (stockError) {
-    // Fallback
+    // Fallback if RPC fails
     await supabase
       .from("sarpras")
       .update({ stok_tersedia: sarpras.stok_tersedia - detail.jumlah })
@@ -126,12 +222,16 @@ export const approveLoan = async (loanId: string, detail: any, petugasId: string
     user_id: petugasId,
     action: "APPROVE_LOAN",
     module: "PEMINJAMAN",
-    description: `Peminjaman dengan ID ${loanId} telah disetujui oleh Petugas`,
-    data_after: { loanId, status: "disetujui" }
+    description: `Peminjaman dengan ID ${loanId} (${sarpras.nama}) telah disetujui oleh Petugas`,
+    data_after: { loanId, status: "disetujui" },
   });
 };
 
-export const rejectLoan = async (loanId: string, alasan: string, petugasId: string) => {
+export const rejectLoan = async (
+  loanId: string,
+  alasan: string,
+  petugasId: string,
+) => {
   const { error } = await supabase
     .from("peminjaman")
     .update({
@@ -150,6 +250,6 @@ export const rejectLoan = async (loanId: string, alasan: string, petugasId: stri
     action: "REJECT_LOAN",
     module: "PEMINJAMAN",
     description: `Peminjaman dengan ID ${loanId} ditolak oleh Petugas. Alasan: ${alasan}`,
-    data_after: { loanId, status: "ditolak", alasan }
+    data_after: { loanId, status: "ditolak", alasan },
   });
 };

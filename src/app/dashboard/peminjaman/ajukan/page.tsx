@@ -32,17 +32,29 @@ import { getSarprasById } from "@/lib/api/sarpras";
 import { Sarpras } from "@/lib/types";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { supabase } from "@/lib/supabase/client";
-import { createPeminjaman } from "@/lib/api/peminjaman";
+import { createPeminjaman, getEffectiveStock } from "@/lib/api/peminjaman";
 
-const loanSchema = z.object({
-  sarpras_id: z.string().min(1, "Item wajib dipilih"),
-  jumlah: z.coerce.number().min(1, "Jumlah minimal 1"),
-  tanggal_pinjam: z.string().min(1, "Tanggal pinjam wajib diisi"),
-  tanggal_kembali_estimasi: z
-    .string()
-    .min(1, "Estimasi pengembalian wajib diisi"),
-  tujuan: z.string().min(5, "Tujuan minimal 5 karakter"),
-});
+const loanSchema = z
+  .object({
+    sarpras_id: z.string().min(1, "Item wajib dipilih"),
+    jumlah: z.coerce.number().min(1, "Jumlah minimal 1"),
+    tanggal_pinjam: z.string().min(1, "Tanggal pinjam wajib diisi"),
+    tanggal_kembali_estimasi: z
+      .string()
+      .min(1, "Estimasi pengembalian wajib diisi"),
+    tujuan: z.string().min(5, "Tujuan minimal 5 karakter"),
+  })
+  .refine(
+    (data) => {
+      const pinjam = new Date(data.tanggal_pinjam);
+      const kembali = new Date(data.tanggal_kembali_estimasi);
+      return kembali >= pinjam;
+    },
+    {
+      message: "Estimasi pengembalian tidak boleh sebelum tanggal pinjam",
+      path: ["tanggal_kembali_estimasi"],
+    },
+  );
 
 type LoanFormValues = z.infer<typeof loanSchema>;
 
@@ -52,6 +64,11 @@ function LoanApplicationContent() {
   const sarprasId = searchParams.get("item");
 
   const [sarpras, setSarpras] = useState<Sarpras | null>(null);
+  const [effectiveStock, setEffectiveStock] = useState<{
+    stok_tersedia: number;
+    total_pending: number;
+    effective_stock: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -68,8 +85,11 @@ function LoanApplicationContent() {
 
   useEffect(() => {
     if (sarprasId) {
-      getSarprasById(sarprasId)
-        .then(setSarpras)
+      Promise.all([getSarprasById(sarprasId), getEffectiveStock(sarprasId)])
+        .then(([sData, eData]) => {
+          setSarpras(sData);
+          setEffectiveStock(eData);
+        })
         .catch((err) => {
           console.error(err);
           toast.error("Gagal mengambil data item");
@@ -88,8 +108,10 @@ function LoanApplicationContent() {
       return;
     }
 
-    if (sarpras && values.jumlah > sarpras.stok_tersedia) {
-      toast.error(`Stok tidak mencukupi. Tersedia: ${sarpras.stok_tersedia}`);
+    if (effectiveStock && values.jumlah > effectiveStock.effective_stock) {
+      toast.error(
+        `Stok efektif tidak mencukupi. Tersedia: ${effectiveStock.stok_tersedia}, Sudah dipesan: ${effectiveStock.total_pending}`,
+      );
       return;
     }
 
@@ -107,9 +129,9 @@ function LoanApplicationContent() {
 
       toast.success("Permohonan peminjaman berhasil diajukan!");
       router.push("/dashboard/peminjaman");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Gagal mengajukan peminjaman");
+      toast.error(error.message || "Gagal mengajukan peminjaman");
     } finally {
       setSubmitting(false);
     }
@@ -174,10 +196,32 @@ function LoanApplicationContent() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tersedia</span>
-                <span className="font-bold text-blue-600">
+                <span className="font-bold">
                   {sarpras.stok_tersedia} Unit
                 </span>
               </div>
+              {effectiveStock && effectiveStock.total_pending > 0 && (
+                <>
+                  <div className="flex justify-between text-xs text-orange-600">
+                    <span>Sedang Dipesan</span>
+                    <span>{effectiveStock.total_pending} Unit</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t">
+                    <span className="font-medium">Stok Efektif</span>
+                    <span className="font-bold text-blue-600">
+                      {effectiveStock.effective_stock} Unit
+                    </span>
+                  </div>
+                </>
+              )}
+              {effectiveStock && effectiveStock.total_pending === 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Bisa Dipinjam</span>
+                  <span className="font-bold text-blue-600">
+                    {effectiveStock.effective_stock} Unit
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -210,12 +254,12 @@ function LoanApplicationContent() {
                             <Input
                               type="number"
                               min={1}
-                              max={sarpras.stok_tersedia}
+                              max={effectiveStock?.effective_stock || sarpras.stok_tersedia}
                               {...field}
                             />
                           </FormControl>
                           <FormDescription>
-                            Maks: {sarpras.stok_tersedia}
+                            Maks bisa dipinjam: {effectiveStock?.effective_stock ?? sarpras.stok_tersedia}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
