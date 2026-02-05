@@ -34,6 +34,9 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Peminjaman, Profile, PeminjamanDetail, Sarpras } from "@/lib/types";
 
+import { Plus, Trash2, XCircle } from "lucide-react";
+import { ReturnItem } from "@/lib/api/pengembalian";
+
 type PeminjamanWithRelations = Peminjaman & {
   profile: Pick<Profile, "id" | "nama_lengkap" | "username">;
   peminjaman_detail: (PeminjamanDetail & {
@@ -56,15 +59,25 @@ export default function PengembalianPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Return form state
-  const [kondisi, setKondisi] = useState<string>("baik");
-  const [catatan, setCatatan] = useState("");
-  const [foto, setFoto] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  // Return breakdown state
+  const [items, setItems] = useState<ReturnItem[]>([]);
+  const [uploadingRowIndex, setUploadingRowIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setUser(getCurrentUser());
   }, []);
+
+  useEffect(() => {
+    if (loanData) {
+      // Default to one row with full quantity
+      const totalBorrowed = loanData.peminjaman_detail[0]?.jumlah || 0;
+      setItems([
+        { kondisi: "baik", jumlah: totalBorrowed, catatan: "", foto: null },
+      ]);
+    } else {
+      setItems([]);
+    }
+  }, [loanData]);
 
   const handleSearch = async () => {
     if (!searchCode) return;
@@ -81,11 +94,28 @@ export default function PengembalianPage() {
     }
   };
 
-  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const addItemRow = () => {
+    setItems([...items, { kondisi: "baik", jumlah: 0, catatan: "", foto: null }]);
+  };
+
+  const removeItemRow = (index: number) => {
+    if (items.length <= 1) return;
+    const newItems = [...items];
+    newItems.splice(index, 1);
+    setItems(newItems);
+  };
+
+  const updateItem = (index: number, field: keyof ReturnItem, value: any) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
+  };
+
+  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingRowIndex(index);
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -93,18 +123,32 @@ export default function PengembalianPage() {
 
       const publicUrl = await uploadFile("media", filePath, file);
 
-      setFoto(publicUrl);
-      toast.success("Foto berhasil diunggah");
+      updateItem(index, "foto", publicUrl);
+      toast.success(`Foto item #${index + 1} berhasil diunggah`);
     } catch (error) {
       console.error(error);
       toast.error("Gagal mengunggah foto");
     } finally {
-      setUploading(false);
+      setUploadingRowIndex(null);
     }
   };
 
   const handleSubmitReturn = async () => {
     if (!loanData || !user) return;
+
+    // Validation
+    const totalReturned = items.reduce((acc, curr) => acc + curr.jumlah, 0);
+    const totalBorrowed = loanData.peminjaman_detail[0]?.jumlah || 0;
+
+    if (totalReturned !== totalBorrowed) {
+      toast.error(`Total barang kembali (${totalReturned}) tidak sama dengan total dipinjam (${totalBorrowed})`);
+      return;
+    }
+
+    if (items.some(item => item.jumlah <= 0)) {
+       toast.error("Jumlah setiap baris harus lebih dari 0");
+       return;
+    }
 
     setSubmitting(true);
     try {
@@ -113,13 +157,10 @@ export default function PengembalianPage() {
       await processReturn({
         peminjaman_id: loanData.id,
         petugas_id: user.id,
-        catatan: catatan,
-        kondisi: kondisi,
-        foto: foto,
-        sarpras_id: detail.sarpras.id,
-        jumlah: detail.jumlah,
         user_id: loanData.user_id,
         kode_peminjaman: loanData.kode_peminjaman,
+        sarpras_id: detail.sarpras.id,
+        items: items
       });
 
       toast.success("Pengembalian berhasil dicatat!");
@@ -141,7 +182,7 @@ export default function PengembalianPage() {
           </h1>
           <p className="text-muted-foreground">
             Scan QR Code pada tanda bukti atau masukkan kode peminjaman secara
-            manual.
+            manual. Dukungan pengembalian dengan kondisi beragam.
           </p>
         </div>
 
@@ -225,7 +266,7 @@ export default function PengembalianPage() {
                         {loanData.peminjaman_detail[0]?.sarpras?.nama}
                       </p>
                       <p className="text-xs font-bold text-orange-600">
-                        {loanData.peminjaman_detail[0]?.jumlah} Unit
+                        {loanData.peminjaman_detail[0]?.jumlah} Unit Dipinjam
                       </p>
                     </div>
                   </div>
@@ -258,11 +299,11 @@ export default function PengembalianPage() {
                 <AlertTriangle className="h-6 w-6 text-yellow-600 shrink-0" />
                 <div className="text-sm">
                   <p className="font-black text-yellow-800 uppercase tracking-wider mb-1">
-                    Instruksi Petugas
+                    Mixed Condition Return
                   </p>
                   <p className="text-yellow-700 leading-relaxed font-medium">
-                    Lakukan inspeksi fisik secara mendetail pada barang. Pastikan
-                    jumlah sesuai dan tidak ada kerusakan yang tidak dilaporkan.
+                    Jika barang kembali dengan kondisi berbeda-beda (sebagian baik, sebagian rusak), 
+                    tambahkan baris pemeriksaan baru di sebelah kanan. Pastikan total jumlah sesuai.
                   </p>
                 </div>
               </div>
@@ -270,125 +311,135 @@ export default function PengembalianPage() {
 
             {/* Inspection Form */}
             <div className="md:col-span-3">
-              <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
-                <CardHeader className="bg-blue-900 text-white p-6">
-                  <CardTitle className="flex items-center gap-2">
-                    <ArrowRight className="h-5 w-5" /> Form Inspeksi &
-                    Pengembalian
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 space-y-6">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-black uppercase tracking-wider text-gray-500">
-                      Status Kondisi Saat Ini
-                    </Label>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                      <ConditionOption
-                        id="baik"
-                        label="BAIK"
-                        icon={<ShieldCheck className="h-4 w-4" />}
-                        active={kondisi === "baik"}
-                        onClick={() => setKondisi("baik")}
-                        color="green"
-                      />
-                      <ConditionOption
-                        id="rusak_ringan"
-                        label="CACAT"
-                        icon={<AlertTriangle className="h-4 w-4" />}
-                        active={kondisi === "rusak_ringan"}
-                        onClick={() => setKondisi("rusak_ringan")}
-                        color="yellow"
-                      />
-                      <ConditionOption
-                        id="rusak_berat"
-                        label="RUSAK"
-                        icon={<XCircleIcon />}
-                        active={kondisi === "rusak_berat"}
-                        onClick={() => setKondisi("rusak_berat")}
-                        color="orange"
-                      />
-                      <ConditionOption
-                        id="hilang"
-                        label="HILANG"
-                        icon={<Search className="h-4 w-4" />}
-                        active={kondisi === "hilang"}
-                        onClick={() => setKondisi("hilang")}
-                        color="red"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="text-sm font-black uppercase tracking-wider text-gray-500">
-                      Catatan / Deskripsi Kerusakan
-                    </Label>
-                    <Textarea
-                      placeholder="Tuliskan detail kondisi barang, misalnya: 'Body tergores', 'Kelengkapan kabel kurang', dsb."
-                      className="min-h-30 rounded-2xl bg-gray-50 interface focus:bg-white transition-all"
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="text-sm font-black uppercase tracking-wider text-gray-500">
-                      Foto Pengembalian (Opsional)
-                    </Label>
-                    <div className="flex items-center gap-6">
-                      <div
-                        className={`w-32 h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all ${foto ? "border-blue-500" : "border-gray-200"}`}
+              <div className="space-y-6">
+                {items.map((item, index) => (
+                  <Card key={index} className="border-none shadow-xl rounded-3xl overflow-hidden relative">
+                    {items.length > 1 && (
+                      <button 
+                        onClick={() => removeItemRow(index)}
+                        className="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors"
                       >
-                        {foto ? (
-                          <img
-                            src={foto}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    )}
+                    <CardHeader className="bg-blue-900 text-white p-4">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                         <FileText className="h-4 w-4" /> Pemeriksaan Bagian #{index + 1}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-6">
+                      <div className="grid lg:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label className="text-xs font-black uppercase tracking-wider text-gray-500">
+                            Jumlah Barang
+                          </Label>
+                          <Input 
+                            type="number"
+                            min={1}
+                            max={loanData.peminjaman_detail[0]?.jumlah}
+                            value={item.jumlah}
+                            onChange={(e) => updateItem(index, "jumlah", parseInt(e.target.value) || 0)}
+                            className="h-12 rounded-xl text-lg font-bold"
                           />
-                        ) : (
-                          <>
-                            <Camera className="h-8 w-8 text-gray-300" />
-                            <span className="text-[10px] font-bold text-gray-300 uppercase mt-2">
-                              Preview
-                            </span>
-                          </>
-                        )}
-                        {uploading && (
-                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                            <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-xs font-black uppercase tracking-wider text-gray-500">
+                            Kondisi
+                          </Label>
+                          <div className="grid grid-cols-2 gap-2">
+                             <ConditionOption 
+                                label="BAIK"
+                                icon={<ShieldCheck className="h-3 w-3" />}
+                                active={item.kondisi === "baik"}
+                                onClick={() => updateItem(index, "kondisi", "baik")}
+                                color="green"
+                             />
+                             <ConditionOption 
+                                label="CACAT"
+                                icon={<AlertTriangle className="h-3 w-3" />}
+                                active={item.kondisi === "rusak_ringan"}
+                                onClick={() => updateItem(index, "kondisi", "rusak_ringan")}
+                                color="yellow"
+                             />
+                             <ConditionOption 
+                                label="RUSAK"
+                                icon={<XCircleIcon />}
+                                active={item.kondisi === "rusak_berat"}
+                                onClick={() => updateItem(index, "kondisi", "rusak_berat")}
+                                color="orange"
+                             />
+                             <ConditionOption 
+                                label="HILANG"
+                                icon={<Search className="h-3 w-3" />}
+                                active={item.kondisi === "hilang"}
+                                onClick={() => updateItem(index, "kondisi", "hilang")}
+                                color="red"
+                             />
                           </div>
-                        )}
+                        </div>
                       </div>
-                      <div className="flex-1 space-y-2">
-                        <p className="text-xs text-muted-foreground">
-                          Unggah foto sebagai bukti kondisi saat barang
-                          dikembalikan.
-                        </p>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFotoUpload(e)}
-                          disabled={uploading}
-                          className="rounded-xl"
+
+                      <div className="space-y-3">
+                        <Label className="text-xs font-black uppercase tracking-wider text-gray-500">
+                          Catatan
+                        </Label>
+                        <Textarea
+                          placeholder="Detail kondisi..."
+                          className="min-h-20 rounded-xl bg-gray-50 focus:bg-white transition-all text-sm"
+                          value={item.catatan}
+                          onChange={(e) => updateItem(index, "catatan", e.target.value)}
                         />
                       </div>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="bg-gray-50 p-6 flex justify-end">
+
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all bg-gray-50">
+                          {item.foto ? (
+                            <img src={item.foto} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <Camera className="h-6 w-6 text-gray-300" />
+                          )}
+                          {uploadingRowIndex === index && (
+                            <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                              <Loader2 className="animate-spin h-4 w-4 text-blue-600" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <Input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => handleFotoUpload(e, index)}
+                            disabled={uploadingRowIndex !== null}
+                            className="rounded-lg h-9 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                <div className="flex gap-4">
+                  <Button 
+                    variant="outline"
+                    onClick={addItemRow}
+                    className="flex-1 h-16 rounded-2xl border-2 border-dashed border-blue-200 text-blue-600 hover:bg-blue-50 gap-2 font-bold"
+                  >
+                    <Plus className="h-5 w-5" /> Tambah Kondisi Berbeda
+                  </Button>
                   <Button
                     onClick={handleSubmitReturn}
                     disabled={submitting}
-                    className="bg-blue-600 hover:bg-blue-700 h-14 px-10 rounded-2xl font-black text-lg shadow-xl shadow-blue-200"
+                    className="flex-[2] bg-blue-900 hover:bg-black h-16 rounded-2xl font-black text-lg shadow-xl"
                   >
                     {submitting ? (
                       <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                     ) : (
-                      <FileText className="mr-2 h-6 w-6" />
+                      <ShieldCheck className="mr-2 h-6 w-6" />
                     )}
-                    PROSES PENGEMBALIAN
+                    KONFIRMASI SEMUA ({items.reduce((a,c) => a+c.jumlah, 0)} Unit)
                   </Button>
-                </CardFooter>
-              </Card>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -404,7 +455,6 @@ function ConditionOption({
   onClick,
   color,
 }: {
-  id: string;
   label: string;
   icon: React.ReactNode;
   active: boolean;
@@ -430,7 +480,7 @@ function ConditionOption({
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all font-black text-[10px] gap-2 tracking-widest ${active ? activeColors[color] : colors[color]}`}
+      className={`flex items-center justify-center p-2 rounded-xl border-2 transition-all font-black text-[9px] gap-1 tracking-widest ${active ? activeColors[color] : colors[color]}`}
     >
       {icon}
       {label}
@@ -442,8 +492,8 @@ function XCircleIcon() {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
+      width="12"
+      height="12"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
