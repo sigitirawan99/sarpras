@@ -56,41 +56,43 @@ type PengaduanWithRelations = Pengaduan & {
 
 import { AuthRoleGuard } from "@/components/auth-role-guard";
 
+import { getPengaduanList } from "@/lib/api/pengaduan";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
 export default function PengaduanPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [data, setData] = useState<PengaduanWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
   const [selectedItem, setSelectedItem] =
     useState<PengaduanWithRelations | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
     setUser(currentUser);
 
     setLoading(true);
     try {
-      let query = supabase
-        .from("pengaduan")
-        .select(
-          `
-          *,
-          profile:user_id (id, nama_lengkap, username, foto_profil),
-          sarpras:sarpras_id (id, nama, kode),
-          progress:pengaduan_progress (id, catatan, status, created_at)
-        `,
-        )
-        .order("created_at", { ascending: false });
-
-      if (currentUser.role === "pengguna") {
-        query = query.eq("user_id", currentUser.id);
-      }
-
-      const { data: complaints, error } = await query;
-      if (error) throw error;
+      const { data: complaints, count } = await getPengaduanList({
+        userId: currentUser.role === "pengguna" ? currentUser.id : undefined,
+        page,
+        pageSize,
+      });
       setData((complaints as unknown as PengaduanWithRelations[]) || []);
+      setTotalCount(count);
     } catch (error) {
       console.error(error);
       toast.error("Gagal mengambil data pengaduan");
@@ -100,8 +102,8 @@ export default function PengaduanPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(currentPage);
+  }, [currentPage]);
 
   const updateStatus = async (
     complaintId: string,
@@ -128,7 +130,7 @@ export default function PengaduanPage() {
       if (uError) throw uError;
 
       toast.success(`Status diperbarui menjadi ${newStatus}`);
-      fetchData();
+      fetchData(currentPage);
       if (selectedItem?.id === complaintId) {
         setIsDetailOpen(false);
       }
@@ -137,6 +139,9 @@ export default function PengaduanPage() {
       toast.error("Gagal memperbarui status");
     }
   };
+
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const getStatusBadge = (status: PengaduanStatus) => {
     switch (status) {
@@ -322,6 +327,66 @@ export default function PengaduanPage() {
                 </CardFooter>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* PAGINATION */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-4">
+             <p className="text-xs text-muted-foreground font-medium">
+                Menampilkan <span className="font-bold text-gray-900">{filteredData.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span> data
+             </p>
+             <Pagination className="mx-0 w-auto">
+               <PaginationContent>
+                 <PaginationItem>
+                   <PaginationPrevious 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                      }}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                   />
+                 </PaginationItem>
+                 
+                 {[...Array(totalPages)].map((_, i) => {
+                   const pageNum = i + 1;
+                   if (totalPages > 5) {
+                      if (pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                        if (Math.abs(pageNum - currentPage) === 2) return <PaginationEllipsis key={pageNum} />;
+                        return null;
+                      }
+                   }
+
+                   return (
+                     <PaginationItem key={pageNum}>
+                       <PaginationLink 
+                          href="#" 
+                          isActive={currentPage === pageNum}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(pageNum);
+                          }}
+                          className="cursor-pointer"
+                       >
+                         {pageNum}
+                       </PaginationLink>
+                     </PaginationItem>
+                   );
+                 })}
+
+                 <PaginationItem>
+                   <PaginationNext 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                      }}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                   />
+                 </PaginationItem>
+               </PaginationContent>
+             </Pagination>
           </div>
         )}
 

@@ -28,18 +28,25 @@ export const recordActivityLog = async (payload: LogPayload) => {
   }
 };
 
-export const getActivityLogs = async (limit = 100) => {
-  const { data, error } = await supabase
+export const getActivityLogs = async (page = 1, pageSize = 10) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from("activity_log")
     .select(
       `
       *,
       profile:user_id (id, nama_lengkap, username, role)
     `,
+      { count: "exact" },
     )
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(from, to);
 
   if (error) throw error;
-  return data;
+  return {
+    data,
+    count: count || 0,
+  };
 };

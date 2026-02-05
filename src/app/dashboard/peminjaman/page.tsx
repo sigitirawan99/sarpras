@@ -77,12 +77,25 @@ type PeminjamanWithRelations = Peminjaman & {
 
 import { AuthRoleGuard } from "@/components/auth-role-guard";
 
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
 export default function PeminjamanPage() {
   const [user, setUser] = useState<Profile | null>(null);
   const [data, setData] = useState<PeminjamanWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
 
   // Dialog states
   const [selectedItem, setSelectedItem] =
@@ -96,17 +109,20 @@ export default function PeminjamanPage() {
     defaultValues: { alasan: "" },
   });
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
     setUser(currentUser);
 
     setLoading(true);
     try {
-      const loans = await getLoans({
+      const { data: loans, count } = await getLoans({
         userId: currentUser.role === "pengguna" ? currentUser.id : undefined,
+        page,
+        pageSize,
       });
       setData((loans as unknown as PeminjamanWithRelations[]) || []);
+      setTotalCount(count);
     } catch (error) {
       console.error(error);
       toast.error("Gagal mengambil data peminjaman");
@@ -116,8 +132,8 @@ export default function PeminjamanPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(currentPage);
+  }, [currentPage]);
 
   const handleApprove = async (loan: PeminjamanWithRelations) => {
     if (!confirm("Setujui peminjaman ini? Stok akan berkurang otomatis."))
@@ -131,10 +147,10 @@ export default function PeminjamanPage() {
       await approveLoan(loan.id, detail, user?.id || "");
 
       toast.success("Peminjaman disetujui");
-      fetchData();
+      fetchData(currentPage);
     } catch (error) {
       console.error(error);
-      console.log(error);
+      toast.error("Gagal menyetujui peminjaman");
     } finally {
       setActionLoading(false);
     }
@@ -151,7 +167,7 @@ export default function PeminjamanPage() {
       setIsRejectOpen(false);
       setSelectedItem(null);
       rejectForm.reset();
-      fetchData();
+      fetchData(currentPage);
     } catch (error) {
       console.error(error);
       toast.error("Gagal menolak peminjaman");
@@ -213,7 +229,7 @@ export default function PeminjamanPage() {
             variant="outline"
             className="bg-red-50 text-red-700 border-red-200"
           >
-            Ditolak
+            Dibatalkan
           </Badge>
         );
     }
@@ -230,12 +246,14 @@ export default function PeminjamanPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return (
     <AuthRoleGuard>
       <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Data Peminjaman</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-blue-900">Data Peminjaman</h1>
           <p className="text-muted-foreground">
             {user?.role === "pengguna"
               ? "Lacak riwayat peminjaman Anda."
@@ -243,9 +261,9 @@ export default function PeminjamanPage() {
           </p>
         </div>
         {user?.role === "pengguna" && (
-          <Button asChild className="bg-blue-600">
-            <Link href="/dashboard/sarpras-tersedia">Pinjam Baru</Link>
-          </Button>
+          <Link href="/dashboard/sarpras-tersedia">
+            <Button className="bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold gap-2">Pinjam Baru</Button>
+          </Link>
         )}
       </div>
 
@@ -256,10 +274,10 @@ export default function PeminjamanPage() {
             placeholder="Cari kode atau nama peminjam..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-11 rounded-xl"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
           <SelectButton
             value="all"
             label="Semua"
@@ -287,7 +305,7 @@ export default function PeminjamanPage() {
         </div>
       </div>
 
-      <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border bg-white shadow-sm overflow-hidden border-gray-100">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50/50">
@@ -301,45 +319,45 @@ export default function PeminjamanPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  Loading...
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-medium">
+                  Loading data...
                 </TableCell>
               </TableRow>
             ) : filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  Tidak ada data.
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground font-medium">
+                  Tidak ada data peminjaman yang ditemukan.
                 </TableCell>
               </TableRow>
             ) : (
               filteredData.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow key={item.id} className="group hover:bg-blue-50/30 transition-colors">
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-mono text-xs font-bold">
+                      <span className="font-mono text-[10px] font-black bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md w-fit mb-1">
                         {item.kode_peminjaman}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs font-bold text-gray-500">
                         {format(new Date(item.tanggal_pinjam), "dd MMM yyyy")}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col text-sm">
-                      <span className="font-medium">
+                      <span className="font-bold text-gray-900">
                         {item.profile?.nama_lengkap}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-[10px] text-muted-foreground font-medium">
                         @{item.profile?.username}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col text-sm">
-                      <span className="font-medium">
+                      <span className="font-bold text-gray-800">
                         {item.peminjaman_detail[0]?.sarpras?.nama}
                       </span>
-                      <span className="text-xs font-bold text-blue-600">
+                      <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full w-fit">
                         {item.peminjaman_detail[0]?.jumlah} Unit
                       </span>
                     </div>
@@ -348,12 +366,13 @@ export default function PeminjamanPage() {
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="rounded-lg">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="rounded-xl border-gray-100 shadow-xl">
                         <DropdownMenuItem
+                          className="rounded-lg font-bold text-xs"
                           onClick={() => {
                             setSelectedItem(item);
                             setIsDetailOpen(true);
@@ -362,7 +381,7 @@ export default function PeminjamanPage() {
                           <Eye className="mr-2 h-4 w-4" /> Lihat Detail
                         </DropdownMenuItem>
                         {item.status === "menunggu" && (
-                          <DropdownMenuItem>
+                          <DropdownMenuItem className="rounded-lg font-bold text-xs">
                             <X className="mr-2 h-4 w-4" /> Batalkan
                           </DropdownMenuItem>
                         )}
@@ -371,14 +390,14 @@ export default function PeminjamanPage() {
                           item.status === "menunggu" && (
                             <>
                               <DropdownMenuItem
-                                className="text-blue-600"
+                                className="text-blue-600 rounded-lg font-bold text-xs"
                                 onClick={() => handleApprove(item)}
                               >
                                 <CheckCircle2 className="mr-2 h-4 w-4" />{" "}
                                 Setujui
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="text-red-600"
+                                className="text-red-600 rounded-lg font-bold text-xs"
                                 onClick={() => {
                                   setSelectedItem(item);
                                   setIsRejectOpen(true);
@@ -391,7 +410,7 @@ export default function PeminjamanPage() {
 
                         {(item.status === "disetujui" ||
                           item.status === "dipinjam") && (
-                          <DropdownMenuItem asChild>
+                          <DropdownMenuItem asChild className="rounded-lg font-bold text-xs text-nowrap">
                             <Link
                               href={`/dashboard/peminjaman/${item.id}/ticket`}
                             >
@@ -410,31 +429,93 @@ export default function PeminjamanPage() {
         </Table>
       </div>
 
+      {/* PAGINATION */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between px-2">
+           <p className="text-xs text-muted-foreground font-medium">
+              Menampilkan <span className="font-bold text-gray-900">{filteredData.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span> data
+           </p>
+           <Pagination className="mx-0 w-auto">
+             <PaginationContent>
+               <PaginationItem>
+                 <PaginationPrevious 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage(currentPage - 1);
+                    }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                 />
+               </PaginationItem>
+               
+               {[...Array(totalPages)].map((_, i) => {
+                 const pageNum = i + 1;
+                 if (totalPages > 5) {
+                    if (pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                      if (Math.abs(pageNum - currentPage) === 2) return <PaginationEllipsis key={pageNum} />;
+                      return null;
+                    }
+                 }
+
+                 return (
+                   <PaginationItem key={pageNum}>
+                     <PaginationLink 
+                        href="#" 
+                        isActive={currentPage === pageNum}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(pageNum);
+                        }}
+                        className="cursor-pointer"
+                     >
+                       {pageNum}
+                     </PaginationLink>
+                   </PaginationItem>
+                 );
+               })}
+
+               <PaginationItem>
+                 <PaginationNext 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                    }}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                 />
+               </PaginationItem>
+             </PaginationContent>
+           </Pagination>
+        </div>
+      )}
+
       {/* DETAIL DIALOG */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Detail Peminjaman</DialogTitle>
-            <DialogDescription>
-              Informasi lengkap pengajuan peminjaman.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-md rounded-3xl border-none shadow-2xl overflow-hidden p-0">
+          <div className="bg-blue-900 p-6 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-white font-black text-xl">Detail Peminjaman</DialogTitle>
+              <DialogDescription className="text-blue-100 text-xs">
+                Informasi lengkap pengajuan peminjaman sarpras.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
           {selectedItem && (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm border-b pb-4">
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4 pb-4 border-b">
                 <div>
-                  <p className="text-muted-foreground mb-1">Status</p>
+                  <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-1">Status</p>
                   {getStatusBadge(selectedItem.status)}
                 </div>
                 <div>
-                  <p className="text-muted-foreground mb-1">Kode Pinjam</p>
-                  <p className="font-mono font-bold">
+                  <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-1">Kode Pinjam</p>
+                  <p className="font-mono font-bold text-sm bg-gray-50 px-2 py-1 rounded w-fit">
                     {selectedItem.kode_peminjaman}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground mb-1">Tanggal Pinjam</p>
-                  <p className="font-medium">
+                  <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-1">Tgl Pinjam</p>
+                  <p className="font-bold text-sm">
                     {format(
                       new Date(selectedItem.tanggal_pinjam),
                       "dd MMMM yyyy",
@@ -443,8 +524,8 @@ export default function PeminjamanPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground mb-1">Estimasi Kembali</p>
-                  <p className="font-medium">
+                  <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest mb-1">Estimasi Kembali</p>
+                  <p className="font-bold text-sm">
                     {format(
                       new Date(selectedItem.tanggal_kembali_estimasi),
                       "dd MMMM yyyy",
@@ -453,102 +534,111 @@ export default function PeminjamanPage() {
                   </p>
                 </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg flex items-start gap-3">
-                <Package className="h-5 w-5 text-blue-600 mt-1" />
+              <div className="bg-blue-50 p-4 rounded-2xl flex items-start gap-4 border border-blue-100 shadow-sm">
+                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-blue-600 shadow-sm border border-blue-50">
+                   <Package className="h-6 w-6" />
+                </div>
                 <div className="flex-1">
-                  <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1">
+                  <p className="text-[10px] font-black text-blue-800 uppercase tracking-widest mb-1">
                     Item yang Dipinjam
                   </p>
-                  <p className="font-bold text-blue-900">
+                  <p className="font-black text-blue-900 text-base leading-tight">
                     {selectedItem.peminjaman_detail[0]?.sarpras?.nama}
                   </p>
-                  <p className="text-sm font-medium text-blue-700">
+                  <p className="text-xs font-bold text-blue-700 mt-1">
                     {selectedItem.peminjaman_detail[0]?.jumlah} Unit
                   </p>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                   Tujuan Peminjaman
                 </p>
-                <p className="text-sm border p-2 rounded bg-gray-50">
-                  {selectedItem.tujuan || "-"}
-                </p>
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 italic text-sm text-gray-700">
+                  &quot;{selectedItem.tujuan || "-"}&quot;
+                </div>
               </div>
               {selectedItem.alasan_penolakan && (
-                <div className="border-l-4 border-red-500 pl-3 py-1">
-                  <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">
+                <div className="border-l-4 border-red-500 pl-4 py-1 bg-red-50 rounded-r-xl">
+                  <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">
                     Alasan Penolakan
                   </p>
-                  <p className="text-sm italic">
+                  <p className="text-sm font-bold text-red-900">
                     {selectedItem.alasan_penolakan}
                   </p>
                 </div>
               )}
+              
+              <div className="pt-2">
+                 <Button
+                    variant="outline"
+                    className="w-full rounded-xl font-black uppercase text-[10px] tracking-widest h-10 border-gray-200"
+                    onClick={() => setIsDetailOpen(false)}
+                  >
+                    Tutup
+                  </Button>
+              </div>
             </div>
           )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setIsDetailOpen(false)}
-            >
-              Tutup
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* REJECT DIALOG */}
       <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-red-600">Tolak Peminjaman</DialogTitle>
-            <DialogDescription>
-              Berikan alasan mengapa peminjaman ini ditolak.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...rejectForm}>
-            <form
-              onSubmit={rejectForm.handleSubmit((values) =>
-                handleReject(values as { alasan: string }),
-              )}
-              className="space-y-4"
-            >
-              <FormField
-                control={rejectForm.control}
-                name="alasan"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Alasan Penolakan</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Contoh: Stok sedang maintenance, atau data kurang lengkap"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+        <DialogContent className="max-w-md rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-red-600 p-6 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-white font-black text-xl">Tolak Peminjaman</DialogTitle>
+              <DialogDescription className="text-red-100">
+                Berikan alasan yang jelas mengapa peminjaman ini ditolak.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-6">
+            <Form {...rejectForm}>
+              <form
+                onSubmit={rejectForm.handleSubmit((values) =>
+                  handleReject(values as { alasan: string }),
                 )}
-              />
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setIsRejectOpen(false)}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-red-600 hover:bg-red-700"
-                  disabled={actionLoading}
-                >
-                  {actionLoading ? "Memproses..." : "Konfirmasi Tolak"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                className="space-y-4"
+              >
+                <FormField
+                  control={rejectForm.control}
+                  name="alasan"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Alasan Penolakan</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Contoh: Stok sedang maintenance, atau data kurang lengkap"
+                          className="rounded-2xl border-gray-200 focus:ring-red-500 focus:border-red-500"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px] font-bold" />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    className="flex-1 rounded-xl font-bold border-gray-200"
+                    onClick={() => setIsRejectOpen(false)}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl font-bold"
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? "Memproses..." : "Konfirmasi Tolak"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
@@ -573,7 +663,7 @@ function SelectButton({
       variant={isActive ? "default" : "outline"}
       size="sm"
       onClick={() => onClick(value)}
-      className={`rounded-full px-4 ${isActive ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+      className={`rounded-full px-4 font-black uppercase text-[10px] tracking-widest h-8 transition-all duration-300 ${isActive ? "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 ring-2 ring-blue-100" : "border-gray-200 bg-white hover:bg-blue-50"}`}
     >
       {label}
     </Button>

@@ -2,14 +2,21 @@ import { supabase } from "../supabase/client";
 import { Profile } from "../types";
 import { recordActivityLog } from "./activity-log";
 
-export const getProfiles = async () => {
-  const { data, error } = await supabase
+export const getProfiles = async (page = 1, pageSize = 10) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from("profiles")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (error) throw error;
-  return data as Profile[];
+  return {
+    data: data as Profile[],
+    count: count || 0,
+  };
 };
 
 export const getProfileById = async (id: string) => {

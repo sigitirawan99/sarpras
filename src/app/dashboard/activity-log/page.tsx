@@ -39,6 +39,15 @@ import {
 import { toast } from "sonner";
 import { ActivityLog } from "@/lib/types";
 import { getActivityLogs } from "@/lib/api/activity-log";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 import { AuthRoleGuard } from "@/components/auth-role-guard";
 
@@ -46,14 +55,18 @@ export default function ActivityLogPage() {
   const [data, setData] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (page = 1) => {
     setLoading(true);
     try {
-      const logs = await getActivityLogs();
+      const { data: logs, count } = await getActivityLogs(page, pageSize);
       setData(logs as unknown as ActivityLog[]);
+      setTotalCount(count);
     } catch (error) {
       console.error(error);
       toast.error("Gagal mengambil data log");
@@ -63,8 +76,8 @@ export default function ActivityLogPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(currentPage);
+  }, [currentPage]);
 
   const getModuleIcon = (module: string) => {
     switch (module.toLowerCase()) {
@@ -92,19 +105,21 @@ export default function ActivityLogPage() {
     );
   });
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return (
     <AuthRoleGuard allowedRoles={["admin"]}>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-blue-900">
               Audit Log Aktivitas
             </h1>
             <p className="text-muted-foreground">
               Rekam jejak seluruh perubahan dan aktivitas penting dalam sistem.
             </p>
           </div>
-          <Button variant="outline" onClick={fetchData} className="gap-2">
+          <Button variant="outline" onClick={() => fetchData(currentPage)} className="gap-2 rounded-xl border-gray-200">
             <RotateCcw className="h-4 w-4" /> Refresh Log
           </Button>
         </div>
@@ -115,11 +130,11 @@ export default function ActivityLogPage() {
             placeholder="Cari berdasarkan aksi, modul, deskripsi atau nama user..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-11 rounded-xl"
           />
         </div>
 
-        <div className="rounded-md border bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border bg-white shadow-sm overflow-hidden border-gray-100">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50/50">
@@ -134,36 +149,36 @@ export default function ActivityLogPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    Loading...
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground font-medium">
+                    Loading data log...
                   </TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    Tidak ada log aktivitas.
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground font-medium">
+                    Tidak ada log aktivitas yang ditemukan.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell className="text-xs font-medium">
+                  <TableRow key={log.id} className="group hover:bg-blue-50/30 transition-colors">
+                    <TableCell className="text-xs font-bold text-gray-500">
                       {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss")}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getModuleIcon(log.module)}
-                        <span className="text-xs font-bold uppercase tracking-tighter">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-600">
                           {log.module}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col text-xs">
-                        <span className="font-bold">
+                        <span className="font-bold text-gray-900">
                           {log.profile?.nama_lengkap || "System"}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="text-[10px] text-muted-foreground font-medium">
                           @{log.profile?.username || "system"}
                         </span>
                       </div>
@@ -171,13 +186,13 @@ export default function ActivityLogPage() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 border-blue-100"
+                        className="text-[9px] font-black uppercase text-blue-600 bg-blue-50 border-blue-100 rounded-md"
                       >
                         {log.action}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <p className="text-xs text-muted-foreground line-clamp-1">
+                      <p className="text-xs text-muted-foreground font-medium line-clamp-1">
                         {log.description}
                       </p>
                     </TableCell>
@@ -185,6 +200,7 @@ export default function ActivityLogPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="rounded-lg hover:bg-blue-50 hover:text-blue-600"
                         onClick={() => {
                           setSelectedLog(log);
                           setIsDetailOpen(true);
@@ -200,7 +216,66 @@ export default function ActivityLogPage() {
           </Table>
         </div>
 
-        {/* DETAIL DIALOG */}
+        {/* PAGINATION */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between px-2">
+             <p className="text-xs text-muted-foreground font-medium">
+                Menampilkan <span className="font-bold text-gray-900">{filteredData.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span> log
+             </p>
+             <Pagination className="mx-0 w-auto">
+               <PaginationContent>
+                 <PaginationItem>
+                   <PaginationPrevious 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                      }}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                   />
+                 </PaginationItem>
+                 
+                 {[...Array(totalPages)].map((_, i) => {
+                   const pageNum = i + 1;
+                   if (totalPages > 5) {
+                      if (pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
+                        if (Math.abs(pageNum - currentPage) === 2) return <PaginationEllipsis key={pageNum} />;
+                        return null;
+                      }
+                   }
+
+                   return (
+                     <PaginationItem key={pageNum}>
+                       <PaginationLink 
+                          href="#" 
+                          isActive={currentPage === pageNum}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(pageNum);
+                          }}
+                          className="cursor-pointer"
+                       >
+                         {pageNum}
+                       </PaginationLink>
+                     </PaginationItem>
+                   );
+                 })}
+
+                 <PaginationItem>
+                   <PaginationNext 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                      }}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                   />
+                 </PaginationItem>
+               </PaginationContent>
+             </Pagination>
+          </div>
+        )}
+
         <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
