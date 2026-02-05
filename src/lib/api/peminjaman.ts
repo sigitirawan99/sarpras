@@ -133,7 +133,16 @@ export const createPeminjaman = async (payload: CreatePeminjamanPayload) => {
   return peminjaman;
 };
 
-export const getLoans = async (filter?: { userId?: string }) => {
+export const getLoans = async (params?: {
+  userId?: string;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const page = params?.page || 1;
+  const pageSize = params?.pageSize || 10;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   let query = supabase
     .from("peminjaman")
     .select(
@@ -146,16 +155,20 @@ export const getLoans = async (filter?: { userId?: string }) => {
         sarpras:sarpras_id (id, nama, kode, stok_tersedia)
       )
     `,
+      { count: "exact" },
     )
     .order("created_at", { ascending: false });
 
-  if (filter?.userId) {
-    query = query.eq("user_id", filter.userId);
+  if (params?.userId) {
+    query = query.eq("user_id", params.userId);
   }
 
-  const { data, error } = await query;
+  const { data, error, count } = await query.range(from, to);
   if (error) throw error;
-  return data;
+  return {
+    data,
+    count: count || 0,
+  };
 };
 
 export const approveLoan = async (

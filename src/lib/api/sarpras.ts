@@ -1,8 +1,11 @@
 import { supabase } from "../supabase/client";
 import { Sarpras } from "../types";
 
-export const getSarprasList = async () => {
-  const { data, error } = await supabase
+export const getSarprasList = async (page = 1, pageSize = 10) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from("sarpras")
     .select(
       `
@@ -16,12 +19,17 @@ export const getSarprasList = async () => {
       kategori:kategori_id (id, nama),
       lokasi:lokasi_id (id, nama_lokasi)
     `,
+      { count: "exact" },
     )
     .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (error) throw error;
-  return data as unknown as Sarpras[];
+  return {
+    data: data as unknown as Sarpras[],
+    count: count || 0,
+  };
 };
 
 export const getSarprasById = async (id: string) => {
