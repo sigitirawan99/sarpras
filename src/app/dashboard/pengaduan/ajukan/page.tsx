@@ -40,7 +40,7 @@ export default function AjukanPengaduanPage() {
         setUser(currentUser);
 
         const sarprasRes = await getSarprasList();
-        setSarprasList(sarprasRes);
+        setSarprasList(sarprasRes.data);
       } catch (error) {
         console.error(error);
         toast.error("Gagal mengambil data sarpras");
