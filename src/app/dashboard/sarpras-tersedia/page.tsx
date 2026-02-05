@@ -35,7 +35,7 @@ export default function SarprasTersediaPage() {
         getKategori(),
       ]);
       // Filter only available items with stock > 0 and konditi 'baik' or 'rusak_ringan'
-      const availableItems = sarprasRes.filter(
+      const availableItems = sarprasRes.data.filter(
         (item) =>
           item.stok_tersedia > 0 &&
           (item.kondisi === "baik" || item.kondisi === "rusak_ringan"),
