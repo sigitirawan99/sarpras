@@ -46,5 +46,4 @@ export const updateLokasi = async (
 export const deleteLokasi = async (id: string) => {
   const { error } = await supabase.from("lokasi").delete().eq("id", id);
   if (error) throw error;
-  window.location.reload();
 };

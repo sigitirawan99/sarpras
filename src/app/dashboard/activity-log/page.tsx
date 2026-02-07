@@ -61,6 +61,20 @@ export default function ActivityLogPage() {
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  // Helper to force Jakarta time (UTC+7)
+const formatJakarta = (dateStr: string, pattern: string = "dd/MM/yyyy HH:mm:ss") => {
+  try {
+    const date = new Date(dateStr + 'Z');
+    const jakartaDate = new Date(
+      date.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    );
+    return format(jakartaDate, pattern, { locale: idLocale });
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+
   const fetchData = async (page = 1) => {
     setLoading(true);
     try {
@@ -163,7 +177,7 @@ export default function ActivityLogPage() {
                 filteredData.map((log) => (
                   <TableRow key={log.id} className="group hover:bg-blue-50/30 transition-colors">
                     <TableCell className="text-xs font-bold text-gray-500">
-                      {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss")}
+                      {formatJakarta(log.created_at)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -307,11 +321,7 @@ export default function ActivityLogPage() {
                       Waktu Kejadian
                     </p>
                     <p className="text-sm font-bold">
-                      {format(
-                        new Date(selectedLog.created_at),
-                        "dd MMMM yyyy, HH:mm:ss",
-                        { locale: idLocale },
-                      )}
+                      {formatJakarta(selectedLog.created_at, "dd MMMM yyyy, HH:mm:ss")}
                     </p>
                   </div>
                 </div>

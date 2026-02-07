@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 import { AuthRoleGuard } from "@/components/auth-role-guard";
+import LetterAvatar from "@/components/letter-avatar";
 
 export default function SarprasTersediaPage() {
   const [data, setData] = useState<Sarpras[]>([]);
@@ -67,7 +68,9 @@ export default function SarprasTersediaPage() {
     <AuthRoleGuard>
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight">Sarpras Tersedia</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Sarpras Tersedia
+          </h1>
           <p className="text-muted-foreground">
             Pilih sarana atau prasarana yang ingin Anda pinjam.
           </p>
@@ -140,7 +143,7 @@ export default function SarprasTersediaPage() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Package className="h-16 w-16 text-gray-200" />
+                      <LetterAvatar name={item.nama} size={200} />
                     </div>
                   )}
                   <div className="absolute top-3 left-3 flex flex-col gap-2">
