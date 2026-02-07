@@ -44,7 +44,7 @@ export const updateProfile = async (id: string, payload: Partial<Profile>, updat
       user_id: updaterId,
       action: "UPDATE_PROFILE",
       module: "USER",
-      description: `Profil user ${payload.username || id} diperbarui`,
+      description: `Profil user ${payload.nama_lengkap} diperbarui`,
       data_after: payload
     });
   }
@@ -113,4 +113,19 @@ export const createProfile = async (payload: Omit<Profile, "id" | "created_at" |
   }
 
   return data;
+};
+
+export const deleteProfile = async (id: string, username: string, adminId?: string) => {
+  const { error } = await supabase.from("profiles").delete().eq("id", id);
+  if (error) throw error;
+
+  if (adminId) {
+    await recordActivityLog({
+      user_id: adminId,
+      action: "DELETE_USER",
+      module: "USER",
+      description: `User ${username} dihapus oleh admin`,
+      data_after: { id, username }
+    });
+  }
 };

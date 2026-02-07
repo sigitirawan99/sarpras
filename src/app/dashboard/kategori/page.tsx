@@ -18,11 +18,23 @@ import { getKategori, deleteKategori } from "@/lib/api/kategori";
 import { toast } from "sonner";
 
 import { AuthRoleGuard } from "@/components/auth-role-guard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function KategoriPage() {
   const [data, setData] = useState<Kategori[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -42,15 +54,16 @@ export default function KategoriPage() {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus kategori ini?")) {
-      try {
-        await deleteKategori(id);
-        toast.success("Kategori berhasil dihapus");
-        fetchData();
-      } catch (error) {
-        console.error(error);
-        toast.error("Gagal menghapus kategori");
-      }
+    try {
+      setIsDeleting(true);
+      await deleteKategori(id);
+      toast.success("Kategori berhasil dihapus");
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal menghapus kategori");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -63,7 +76,9 @@ export default function KategoriPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Kategori Sarpras</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Kategori Sarpras
+            </h1>
             <p className="text-muted-foreground">
               Kelola kategori untuk mengelompokkan sarana dan prasarana.
             </p>
@@ -125,14 +140,46 @@ export default function KategoriPage() {
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-xl font-black text-gray-900">
+                                Hapus User?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="text-gray-500 font-medium">
+                                Apakah Anda yakin ingin menghapus kategori{" "}
+                                <span className="font-bold text-red-600">
+                                  {item.nama}
+                                </span>
+                                ? Tindakan ini tidak dapat dibatalkan.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="mt-4 gap-2">
+                              <AlertDialogCancel className="rounded-xl font-bold border-gray-200">
+                                Batal
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleDelete(item.id);
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? "Menghapus..." : "Hapus Kategori"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>

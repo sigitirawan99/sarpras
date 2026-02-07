@@ -18,6 +18,26 @@ export type ReturnPayload = {
   items: ReturnItem[];
 };
 
+export const getPengembalian = async (page = 1, pageSize = 10) => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from("pengembalian")
+    .select(
+      "*, pengembalian_detail(*, sarpras(nama)), petugas:petugas_id(id, nama_lengkap), peminjaman:peminjaman_id(kode_peminjaman, profile:user_id(nama_lengkap))",
+      { count: "exact" },
+    )
+    .order("id", { ascending: false })
+    .range(from, to);
+
+  if (error) throw error;
+  return {
+    data,
+    count: count || 0,
+  };
+};
+
 export const getPeminjamanByCode = async (code: string) => {
   const { data, error } = await supabase
     .from("peminjaman")
@@ -67,15 +87,17 @@ export const processReturn = async (payload: ReturnPayload) => {
   // 3. Process each item in the breakdown
   for (const item of payload.items) {
     // 3a. Create Pengembalian Detail
-    const { error: rdError } = await supabase.from("pengembalian_detail").insert({
-      pengembalian_id: returnRec.id,
-      sarpras_id: payload.sarpras_id,
-      jumlah: item.jumlah,
-      kondisi: item.kondisi,
-      deskripsi: item.catatan,
-      foto: item.foto,
-      damage_detected: item.kondisi !== "baik",
-    });
+    const { error: rdError } = await supabase
+      .from("pengembalian_detail")
+      .insert({
+        pengembalian_id: returnRec.id,
+        sarpras_id: payload.sarpras_id,
+        jumlah: item.jumlah,
+        kondisi: item.kondisi,
+        deskripsi: item.catatan,
+        foto: item.foto,
+        damage_detected: item.kondisi !== "baik",
+      });
 
     if (rdError) throw rdError;
 
@@ -97,7 +119,7 @@ export const processReturn = async (payload: ReturnPayload) => {
         .select("stok_total, stok_tersedia")
         .eq("id", payload.sarpras_id)
         .single();
-      
+
       if (currentOrig && currentOrig.stok_total > item.jumlah) {
         // Just move this portion out of original
         await supabase
@@ -130,8 +152,8 @@ export const processReturn = async (payload: ReturnPayload) => {
         } else {
           const newCode = generateSarprasCode(
             sarpras.nama,
-            (sarpras.kategori as any)?.nama || "XYZ",
-            item.kondisi as any,
+            sarpras.kategori?.nama || "XYZ",
+            item.kondisi,
           );
           await supabase.from("sarpras").insert({
             nama: sarpras.nama,

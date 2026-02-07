@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Search, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,10 +28,22 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SarprasPage() {
   const [data, setData] = useState<Sarpras[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -56,15 +68,16 @@ export default function SarprasPage() {
   }, [currentPage]);
 
   const handleDelete = async (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
-      try {
-        await deleteSarpras(id);
-        toast.success("Data Sarpras berhasil dihapus");
-        fetchData(currentPage);
-      } catch (error) {
-        console.error(error);
-        toast.error("Gagal menghapus data");
-      }
+    try {
+      setIsDeleting(true);
+      await deleteSarpras(id);
+      toast.success("Data Sarpras berhasil dihapus");
+      fetchData(currentPage);
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal menghapus data");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -81,7 +94,9 @@ export default function SarprasPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-blue-900">Data Sarpras</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-blue-900">
+              Data Sarpras
+            </h1>
             <p className="text-muted-foreground">
               Kelola data sarana dan prasarana sekolah secara detail.
             </p>
@@ -109,7 +124,7 @@ export default function SarprasPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50/50 text-nowrap">
-                <TableHead>Foto</TableHead>
+                <TableHead>No</TableHead>
                 <TableHead>Kode</TableHead>
                 <TableHead>Nama Alat</TableHead>
                 <TableHead>Kategori</TableHead>
@@ -124,38 +139,44 @@ export default function SarprasPage() {
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
                     <div className="flex items-center justify-center gap-2 text-muted-foreground font-medium">
-                       Loading data...
+                      Loading data...
                     </div>
                   </TableCell>
                 </TableRow>
               ) : filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground font-medium">
+                  <TableCell
+                    colSpan={8}
+                    className="h-24 text-center text-muted-foreground font-medium"
+                  >
                     Tidak ada data sarpras.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((item) => (
-                  <TableRow key={item.id} className="text-nowrap group hover:bg-blue-50/30 transition-colors">
-                    <TableCell>
-                      {item.foto ? null : (
-                        <div className="w-10 h-10 bg-blue-50 flex items-center justify-center rounded-xl border border-blue-100">
-                          <Package className="h-5 w-5 text-blue-400" />
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs font-bold text-blue-600 bg-blue-50/50 py-1 px-2 rounded-lg inline-block my-4 ml-4">
+                filteredData.map((item, index) => (
+                  <TableRow
+                    key={item.id}
+                    className="text-nowrap group hover:bg-blue-50/30 transition-colors"
+                  >
+                    <TableCell className="font-medium">{index + 1}</TableCell>
+                    <TableCell className="font-mono text-xs font-bold text-blue-600 bg-blue-50/50 py-1 px-2 rounded-lg inline-block my-4">
                       {item.kode}
                     </TableCell>
-                    <TableCell className="font-bold text-gray-900">{item.nama}</TableCell>
+                    <TableCell className="font-bold text-gray-900">
+                      {item.nama}
+                    </TableCell>
                     <TableCell>
                       <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-black tracking-widest uppercase text-gray-500">
                         {item.kategori?.nama || "-"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs font-medium text-gray-600">{item.lokasi?.nama_lokasi || "-"}</TableCell>
+                    <TableCell className="text-xs font-medium text-gray-600">
+                      {item.lokasi?.nama_lokasi || "-"}
+                    </TableCell>
                     <TableCell className="text-center">
-                      <span className="font-black text-blue-700">{item.stok_tersedia}</span>
+                      <span className="font-black text-blue-700">
+                        {item.stok_tersedia}
+                      </span>
                       <span className="text-muted-foreground text-[10px] font-bold">
                         {" "}
                         / {item.stok_total}
@@ -179,18 +200,62 @@ export default function SarprasPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2 pr-2">
                         <Link href={`/dashboard/sarpras/edit/${item.id}`}>
-                          <Button variant="outline" size="sm" className="rounded-lg border-gray-200 hover:bg-blue-50 hover:text-blue-600">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg border-gray-200 hover:bg-blue-50 hover:text-blue-600"
+                          >
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Button
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-xl font-black text-gray-900">
+                                Hapus User?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="text-gray-500 font-medium">
+                                Apakah Anda yakin ingin menghapus kategori{" "}
+                                <span className="font-bold text-red-600">
+                                  {item.nama}
+                                </span>
+                                ? Tindakan ini tidak dapat dibatalkan.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="mt-4 gap-2">
+                              <AlertDialogCancel className="rounded-xl font-bold border-gray-200">
+                                Batal
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleDelete(item.id);
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                                disabled={isDeleting}
+                              >
+                                {isDeleting ? "Menghapus..." : "Hapus Kategori"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        {/* <Button
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
                           onClick={() => handleDelete(item.id)}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </Button> */}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -203,61 +268,80 @@ export default function SarprasPage() {
         {/* PAGINATION */}
         {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between px-2">
-             <p className="text-xs text-muted-foreground font-medium">
-                Menampilkan <span className="font-bold text-gray-900">{filteredData.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span> data
-             </p>
-             <Pagination className="mx-0 w-auto">
-               <PaginationContent>
-                 <PaginationItem>
-                   <PaginationPrevious 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage > 1) setCurrentPage(currentPage - 1);
-                      }}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                   />
-                 </PaginationItem>
-                 
-                 {[...Array(totalPages)].map((_, i) => {
-                   const pageNum = i + 1;
-                   // Logic for showing pages (simple version)
-                   if (totalPages > 5) {
-                      if (pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
-                        if (Math.abs(pageNum - currentPage) === 2) return <PaginationEllipsis key={pageNum} />;
-                        return null;
-                      }
-                   }
+            <p className="text-xs text-muted-foreground font-medium">
+              Menampilkan{" "}
+              <span className="font-bold text-gray-900">
+                {filteredData.length}
+              </span>{" "}
+              dari <span className="font-bold text-gray-900">{totalCount}</span>{" "}
+              data
+            </p>
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage(currentPage - 1);
+                    }}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
 
-                   return (
-                     <PaginationItem key={pageNum}>
-                       <PaginationLink 
-                          href="#" 
-                          isActive={currentPage === pageNum}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(pageNum);
-                          }}
-                          className="cursor-pointer"
-                       >
-                         {pageNum}
-                       </PaginationLink>
-                     </PaginationItem>
-                   );
-                 })}
+                {[...Array(totalPages)].map((_, i) => {
+                  const pageNum = i + 1;
+                  // Logic for showing pages (simple version)
+                  if (totalPages > 5) {
+                    if (
+                      pageNum !== 1 &&
+                      pageNum !== totalPages &&
+                      Math.abs(pageNum - currentPage) > 1
+                    ) {
+                      if (Math.abs(pageNum - currentPage) === 2)
+                        return <PaginationEllipsis key={pageNum} />;
+                      return null;
+                    }
+                  }
 
-                 <PaginationItem>
-                   <PaginationNext 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                      }}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                   />
-                 </PaginationItem>
-               </PaginationContent>
-             </Pagination>
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href="#"
+                        isActive={currentPage === pageNum}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(pageNum);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages)
+                        setCurrentPage(currentPage + 1);
+                    }}
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
       </div>

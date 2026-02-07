@@ -44,5 +44,4 @@ export const deleteKategori = async (id: string) => {
   const { error } = await supabase.from("kategori").delete().eq("id", id);
 
   if (error) throw error;
-  window.location.reload();
 };

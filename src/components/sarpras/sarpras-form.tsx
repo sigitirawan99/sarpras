@@ -83,19 +83,6 @@ export function SarprasForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="nama"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nama Alat</FormLabel>
-                <FormControl>
-                  <Input placeholder="Contoh: Proyektor Epson" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="kode"
             render={({ field }) => (
               <FormItem>
@@ -107,6 +94,20 @@ export function SarprasForm({
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="nama"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nama Alat</FormLabel>
+                <FormControl>
+                  <Input placeholder="Contoh: Proyektor Epson" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+         
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -119,8 +120,9 @@ export function SarprasForm({
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
+                  
                 >
-                  <FormControl>
+                  <FormControl className="w-full">
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Kategori" />
                     </SelectTrigger>
@@ -147,7 +149,7 @@ export function SarprasForm({
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
-                  <FormControl>
+                  <FormControl className="w-full">
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Lokasi" />
                     </SelectTrigger>
@@ -190,7 +192,7 @@ export function SarprasForm({
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
-                  <FormControl>
+                  <FormControl className="w-full">
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Kondisi" />
                     </SelectTrigger>

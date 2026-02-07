@@ -23,9 +23,6 @@ import { Package, Wrench, Archive, Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Spinner } from "./ui/spinner";
-import { supabase } from "@/lib/supabase/client";
-
-import { setAuthSession } from "@/lib/supabase/auth";
 
 import { login as loginApi } from "@/lib/api/auth";
 
@@ -38,6 +35,7 @@ type LoginFormValues = z.infer<typeof LoginFormSchema>;
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const form = useForm<LoginFormValues>({
     defaultValues: {
       username: "",
@@ -54,7 +52,7 @@ export function LoginForm() {
       push("/dashboard");
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Terjadi kesalahan sistem");
+      setErrorMessage(err.message || "Terjadi kesalahan sistem");
     } finally {
       setIsLoading(false);
     }
@@ -128,6 +126,11 @@ export function LoginForm() {
                       "Login"
                     )}
                   </Button>
+                  {errorMessage && (
+                    <p className="text-sm text-red-600 font-medium bg-red-50 p-2 rounded-md mt-1 text-center">
+                      {errorMessage}
+                    </p>
+                  )}
                 </Field>
                 <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card">
                   Atau lanjutkan dengan

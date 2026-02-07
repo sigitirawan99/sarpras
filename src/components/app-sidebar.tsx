@@ -5,6 +5,7 @@ import {
   BarChart3,
   ClipboardList,
   Clock,
+  History,
   Home,
   List,
   Map,
@@ -40,6 +41,11 @@ const menuByRole = {
     { title: "Data Sarpras", url: "/dashboard/sarpras", icon: Package },
     { title: "Peminjaman", url: "/dashboard/peminjaman", icon: ClipboardList },
     { title: "Pengembalian", url: "/dashboard/pengembalian", icon: RotateCcw },
+    {
+      title: "Riwayat Pengembalian",
+      url: "/dashboard/riwayat-pengembalian",
+      icon: History,
+    },
     { title: "Pengaduan", url: "/dashboard/pengaduan", icon: AlertTriangle },
     {
       title: "Laporan Asset Health",
@@ -52,6 +58,11 @@ const menuByRole = {
     { title: "Dashboard", url: "/dashboard", icon: Home },
     { title: "Peminjaman", url: "/dashboard/peminjaman", icon: ClipboardList },
     { title: "Pengembalian", url: "/dashboard/pengembalian", icon: RotateCcw },
+    {
+      title: "Riwayat Pengembalian",
+      url: "/dashboard/riwayat-pengembalian",
+      icon: History,
+    },
     { title: "Pengaduan", url: "/dashboard/pengaduan", icon: AlertTriangle },
   ],
   pengguna: [

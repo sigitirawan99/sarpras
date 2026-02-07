@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Search, User, ShieldCheck, ShieldAlert, UserCheck } from "lucide-react";
+import { Plus, Pencil, Search, User, ShieldCheck, ShieldAlert, UserCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,7 +13,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Profile, Role } from "@/lib/types";
-import { getProfiles } from "@/lib/api/profiles";
+import { getProfiles, deleteProfile } from "@/lib/api/profiles";
+import { getCurrentUser } from "@/lib/supabase/auth";
 import { toast } from "sonner";
 import Link from "next/link";
 import { AuthRoleGuard } from "@/components/auth-role-guard";
@@ -26,6 +27,16 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function UsersPage() {
   const [data, setData] = useState<Profile[]>([]);
@@ -34,6 +45,11 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
+
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteUsername, setDeleteUsername] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchData = async (page = 1) => {
     setLoading(true);
@@ -46,6 +62,24 @@ export default function UsersPage() {
       toast.error("Gagal mengambil data user");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      const currentUser = getCurrentUser();
+      await deleteProfile(deleteId, deleteUsername, currentUser?.id);
+      toast.success("User berhasil dihapus");
+      setIsDeleteDialogOpen(false);
+      fetchData(currentPage);
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal menghapus user");
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
     }
   };
 
@@ -157,15 +191,29 @@ export default function UsersPage() {
                        </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/dashboard/users/edit/${user.id}`}>
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/dashboard/users/edit/${user.id}`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg border-gray-200 hover:bg-blue-50 hover:text-blue-600"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-lg border-gray-200 hover:bg-blue-50 hover:text-blue-600"
+                          className="rounded-lg border-gray-200 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => {
+                            setDeleteId(user.id);
+                            setDeleteUsername(user.username);
+                            setIsDeleteDialogOpen(true);
+                          }}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -233,6 +281,35 @@ export default function UsersPage() {
              </Pagination>
           </div>
         )}
+
+        {/* DELETE CONFIRMATION */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-xl font-black text-gray-900">
+                Hapus User?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-500 font-medium">
+                Apakah Anda yakin ingin menghapus user <span className="font-bold text-red-600">@{deleteUsername}</span>? Tindakan ini tidak dapat dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="mt-4 gap-2">
+              <AlertDialogCancel className="rounded-xl font-bold border-gray-200">
+                Batal
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDelete();
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Menghapus..." : "Hapus User"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AuthRoleGuard>
   );

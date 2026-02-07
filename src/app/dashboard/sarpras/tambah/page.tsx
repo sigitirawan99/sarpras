@@ -64,7 +64,7 @@ export default function TambahSarprasPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-screen">
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"

@@ -6,7 +6,6 @@ import {
   Search,
   Package,
   User,
-  ArrowRight,
   ShieldCheck,
   AlertTriangle,
   FileText,
@@ -17,13 +16,7 @@ import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -34,7 +27,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Peminjaman, Profile, PeminjamanDetail, Sarpras } from "@/lib/types";
 
-import { Plus, Trash2, XCircle } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { ReturnItem } from "@/lib/api/pengembalian";
 
 type PeminjamanWithRelations = Peminjaman & {
@@ -61,7 +54,9 @@ export default function PengembalianPage() {
 
   // Return breakdown state
   const [items, setItems] = useState<ReturnItem[]>([]);
-  const [uploadingRowIndex, setUploadingRowIndex] = useState<number | null>(null);
+  const [uploadingRowIndex, setUploadingRowIndex] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     setUser(getCurrentUser());
@@ -95,7 +90,10 @@ export default function PengembalianPage() {
   };
 
   const addItemRow = () => {
-    setItems([...items, { kondisi: "baik", jumlah: 0, catatan: "", foto: null }]);
+    setItems([
+      ...items,
+      { kondisi: "baik", jumlah: 0, catatan: "", foto: null },
+    ]);
   };
 
   const removeItemRow = (index: number) => {
@@ -111,7 +109,10 @@ export default function PengembalianPage() {
     setItems(newItems);
   };
 
-  const handleFotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleFotoUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -141,13 +142,15 @@ export default function PengembalianPage() {
     const totalBorrowed = loanData.peminjaman_detail[0]?.jumlah || 0;
 
     if (totalReturned !== totalBorrowed) {
-      toast.error(`Total barang kembali (${totalReturned}) tidak sama dengan total dipinjam (${totalBorrowed})`);
+      toast.error(
+        `Total barang kembali (${totalReturned}) tidak sama dengan total dipinjam (${totalBorrowed})`,
+      );
       return;
     }
 
-    if (items.some(item => item.jumlah <= 0)) {
-       toast.error("Jumlah setiap baris harus lebih dari 0");
-       return;
+    if (items.some((item) => item.jumlah <= 0)) {
+      toast.error("Jumlah setiap baris harus lebih dari 0");
+      return;
     }
 
     setSubmitting(true);
@@ -160,7 +163,7 @@ export default function PengembalianPage() {
         user_id: loanData.user_id,
         kode_peminjaman: loanData.kode_peminjaman,
         sarpras_id: detail.sarpras.id,
-        items: items
+        items: items,
       });
 
       toast.success("Pengembalian berhasil dicatat!");
@@ -277,7 +280,10 @@ export default function PengembalianPage() {
                         Tgl Pinjam
                       </p>
                       <p className="text-xs font-bold">
-                        {format(new Date(loanData.tanggal_pinjam), "dd MMM yyyy")}
+                        {format(
+                          new Date(loanData.tanggal_pinjam),
+                          "dd MMM yyyy",
+                        )}
                       </p>
                     </div>
                     <div>
@@ -302,8 +308,9 @@ export default function PengembalianPage() {
                     Mixed Condition Return
                   </p>
                   <p className="text-yellow-700 leading-relaxed font-medium">
-                    Jika barang kembali dengan kondisi berbeda-beda (sebagian baik, sebagian rusak), 
-                    tambahkan baris pemeriksaan baru di sebelah kanan. Pastikan total jumlah sesuai.
+                    Jika barang kembali dengan kondisi berbeda-beda (sebagian
+                    baik, sebagian rusak), tambahkan baris pemeriksaan baru di
+                    sebelah kanan. Pastikan total jumlah sesuai.
                   </p>
                 </div>
               </div>
@@ -313,9 +320,12 @@ export default function PengembalianPage() {
             <div className="md:col-span-3">
               <div className="space-y-6">
                 {items.map((item, index) => (
-                  <Card key={index} className="border-none shadow-xl rounded-3xl overflow-hidden relative">
+                  <Card
+                    key={index}
+                    className="border-none shadow-xl rounded-3xl overflow-hidden relative"
+                  >
                     {items.length > 1 && (
-                      <button 
+                      <button
                         onClick={() => removeItemRow(index)}
                         className="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors"
                       >
@@ -324,7 +334,8 @@ export default function PengembalianPage() {
                     )}
                     <CardHeader className="bg-blue-900 text-white p-4">
                       <CardTitle className="text-sm flex items-center gap-2">
-                         <FileText className="h-4 w-4" /> Pemeriksaan Bagian #{index + 1}
+                        <FileText className="h-4 w-4" /> Pemeriksaan Bagian #
+                        {index + 1}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 space-y-6">
@@ -333,12 +344,18 @@ export default function PengembalianPage() {
                           <Label className="text-xs font-black uppercase tracking-wider text-gray-500">
                             Jumlah Barang
                           </Label>
-                          <Input 
+                          <Input
                             type="number"
                             min={1}
                             max={loanData.peminjaman_detail[0]?.jumlah}
                             value={item.jumlah}
-                            onChange={(e) => updateItem(index, "jumlah", parseInt(e.target.value) || 0)}
+                            onChange={(e) =>
+                              updateItem(
+                                index,
+                                "jumlah",
+                                parseInt(e.target.value) || 0,
+                              )
+                            }
                             className="h-12 rounded-xl text-lg font-bold"
                           />
                         </div>
@@ -347,34 +364,42 @@ export default function PengembalianPage() {
                             Kondisi
                           </Label>
                           <div className="grid grid-cols-2 gap-2">
-                             <ConditionOption 
-                                label="BAIK"
-                                icon={<ShieldCheck className="h-3 w-3" />}
-                                active={item.kondisi === "baik"}
-                                onClick={() => updateItem(index, "kondisi", "baik")}
-                                color="green"
-                             />
-                             <ConditionOption 
-                                label="CACAT"
-                                icon={<AlertTriangle className="h-3 w-3" />}
-                                active={item.kondisi === "rusak_ringan"}
-                                onClick={() => updateItem(index, "kondisi", "rusak_ringan")}
-                                color="yellow"
-                             />
-                             <ConditionOption 
-                                label="RUSAK"
-                                icon={<XCircleIcon />}
-                                active={item.kondisi === "rusak_berat"}
-                                onClick={() => updateItem(index, "kondisi", "rusak_berat")}
-                                color="orange"
-                             />
-                             <ConditionOption 
-                                label="HILANG"
-                                icon={<Search className="h-3 w-3" />}
-                                active={item.kondisi === "hilang"}
-                                onClick={() => updateItem(index, "kondisi", "hilang")}
-                                color="red"
-                             />
+                            <ConditionOption
+                              label="BAIK"
+                              icon={<ShieldCheck className="h-3 w-3" />}
+                              active={item.kondisi === "baik"}
+                              onClick={() =>
+                                updateItem(index, "kondisi", "baik")
+                              }
+                              color="green"
+                            />
+                            <ConditionOption
+                              label="CACAT"
+                              icon={<AlertTriangle className="h-3 w-3" />}
+                              active={item.kondisi === "rusak_ringan"}
+                              onClick={() =>
+                                updateItem(index, "kondisi", "rusak_ringan")
+                              }
+                              color="yellow"
+                            />
+                            <ConditionOption
+                              label="RUSAK"
+                              icon={<XCircleIcon />}
+                              active={item.kondisi === "rusak_berat"}
+                              onClick={() =>
+                                updateItem(index, "kondisi", "rusak_berat")
+                              }
+                              color="orange"
+                            />
+                            <ConditionOption
+                              label="HILANG"
+                              icon={<Search className="h-3 w-3" />}
+                              active={item.kondisi === "hilang"}
+                              onClick={() =>
+                                updateItem(index, "kondisi", "hilang")
+                              }
+                              color="red"
+                            />
                           </div>
                         </div>
                       </div>
@@ -387,14 +412,20 @@ export default function PengembalianPage() {
                           placeholder="Detail kondisi..."
                           className="min-h-20 rounded-xl bg-gray-50 focus:bg-white transition-all text-sm"
                           value={item.catatan}
-                          onChange={(e) => updateItem(index, "catatan", e.target.value)}
+                          onChange={(e) =>
+                            updateItem(index, "catatan", e.target.value)
+                          }
                         />
                       </div>
 
                       <div className="flex items-center gap-4">
                         <div className="w-20 h-20 rounded-xl border-2 border-dashed flex flex-col items-center justify-center relative overflow-hidden transition-all bg-gray-50">
                           {item.foto ? (
-                            <img src={item.foto} alt="Preview" className="w-full h-full object-cover" />
+                            <img
+                              src={item.foto}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <Camera className="h-6 w-6 text-gray-300" />
                           )}
@@ -405,8 +436,8 @@ export default function PengembalianPage() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <Input 
-                            type="file" 
+                          <Input
+                            type="file"
                             accept="image/*"
                             onChange={(e) => handleFotoUpload(e, index)}
                             disabled={uploadingRowIndex !== null}
@@ -419,7 +450,7 @@ export default function PengembalianPage() {
                 ))}
 
                 <div className="flex gap-4">
-                  <Button 
+                  <Button
                     variant="outline"
                     onClick={addItemRow}
                     className="flex-1 h-16 rounded-2xl border-2 border-dashed border-blue-200 text-blue-600 hover:bg-blue-50 gap-2 font-bold"
@@ -436,7 +467,8 @@ export default function PengembalianPage() {
                     ) : (
                       <ShieldCheck className="mr-2 h-6 w-6" />
                     )}
-                    KONFIRMASI SEMUA ({items.reduce((a,c) => a+c.jumlah, 0)} Unit)
+                    KONFIRMASI SEMUA ({items.reduce((a, c) => a + c.jumlah, 0)}{" "}
+                    Unit)
                   </Button>
                 </div>
               </div>
