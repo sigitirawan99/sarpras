@@ -7,6 +7,7 @@ import {
   Clock,
   History,
   Home,
+  Layers,
   List,
   Map,
   Package,
@@ -21,6 +22,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -58,11 +60,6 @@ const menuByRole = {
     { title: "Dashboard", url: "/dashboard", icon: Home },
     { title: "Peminjaman", url: "/dashboard/peminjaman", icon: ClipboardList },
     { title: "Pengembalian", url: "/dashboard/pengembalian", icon: RotateCcw },
-    {
-      title: "Riwayat Pengembalian",
-      url: "/dashboard/riwayat-pengembalian",
-      icon: History,
-    },
     { title: "Pengaduan", url: "/dashboard/pengaduan", icon: AlertTriangle },
   ],
   pengguna: [
@@ -92,9 +89,19 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="flex justify-center my-4">
-            <h1 className="text-2xl font-extrabold">SARPRAS</h1>
-          </SidebarGroupLabel>
+          <SidebarHeader className="backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-4 py-5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg shadow-blue-500/30">
+            <Layers className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-900 bg-clip-text text-transparent">
+              SARPRAS
+            </h1>
+            <p className="text-xs text-gray-500 font-medium">Management System</p>
+          </div>
+        </div>
+      </SidebarHeader>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (

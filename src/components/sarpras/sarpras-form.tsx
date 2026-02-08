@@ -23,7 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Kategori, Lokasi, Sarpras } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import {
+  Barcode,
+  Package,
+  Layers,
+  MapPin,
+  Activity,
+  Calendar,
+  Loader2,
+} from "lucide-react";
 
 const sarprasSchema = z.object({
   nama: z.string().min(2, "Nama minimal 2 karakter"),
@@ -79,16 +87,19 @@ export function SarprasForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="kode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Kode Sarpras (Otomatis)</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Barcode className="h-4 w-4 text-blue-500" />
+                  Kode Sarpras (Otomatis)
+                </FormLabel>
                 <FormControl>
-                  <Input {...field} disabled placeholder="Otomatis" />
+                  <Input {...field} disabled placeholder="Otomatis" className="bg-muted" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -99,7 +110,10 @@ export function SarprasForm({
             name="nama"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nama Alat</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-blue-500" />
+                  Nama Alat
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Contoh: Proyektor Epson" {...field} />
                 </FormControl>
@@ -107,20 +121,21 @@ export function SarprasForm({
               </FormItem>
             )}
           />
-         
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="kategori_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Kategori</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-blue-500" />
+                  Kategori
+                </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
-                  
                 >
                   <FormControl className="w-full">
                     <SelectTrigger>
@@ -144,7 +159,10 @@ export function SarprasForm({
             name="lokasi_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Lokasi</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-500" />
+                  Lokasi
+                </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -168,13 +186,16 @@ export function SarprasForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="stok_total"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Stok Total</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-500" />
+                  Stok Total
+                </FormLabel>
                 <FormControl>
                   <Input type="number" {...field} />
                 </FormControl>
@@ -187,7 +208,10 @@ export function SarprasForm({
             name="kondisi"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Kondisi</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-500" />
+                  Kondisi
+                </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -215,7 +239,10 @@ export function SarprasForm({
           name="tanggal_perolehan"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Tanggal Perolehan</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-500" />
+                Tanggal Perolehan
+              </FormLabel>
               <FormControl>
                 <Input type="date" {...field} value={field.value || ""} />
               </FormControl>
@@ -227,10 +254,10 @@ export function SarprasForm({
         <div className="pt-4">
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-11 text-md font-semibold transition-all shadow-md active:scale-[0.98]"
             disabled={loading}
           >
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
             {initialData ? "Simpan Perubahan" : "Simpan Data"}
           </Button>
         </div>

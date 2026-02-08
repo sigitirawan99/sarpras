@@ -46,6 +46,16 @@ import {
 import { uploadFile } from "@/lib/api/storage";
 import { toast } from "sonner";
 import { Profile } from "@/lib/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const passwordSchema = z
   .object({
@@ -69,6 +79,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingValues, setPendingValues] = useState<PasswordFormValues | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -87,14 +100,31 @@ export default function ProfilePage() {
 
   const handlePasswordChange = async (values: PasswordFormValues) => {
     if (!user) return;
-    try {
-      await changeUserPassword(user.id, values.new_password, values.old_password);
+    setPendingValues(values);
+    setShowConfirmDialog(true);
+  };
 
-      toast.success("Password berhasil diubah!");
+  const confirmPasswordChange = async () => {
+    if (!user || !pendingValues) return;
+    setSubmitting(true);
+    try {
+      await changeUserPassword(user.id, pendingValues.new_password, pendingValues.old_password);
+
+      toast.success("Password berhasil di ganti");
       form.reset();
+      setShowConfirmDialog(false);
+      setPendingValues(null);
+      setError(null);
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Gagal mengubah password");
+      const errorMessage = error.message || "";
+      setShowConfirmDialog(false)
+      if (errorMessage.toLowerCase().includes("password lama salah") || errorMessage.includes("invalid password")) {
+        toast.error("Password lama salah");
+        setError(error.message);
+      } else {
+        toast.error(errorMessage || "Gagal mengubah password");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -260,6 +290,11 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
+                  {error && (
+                    <FormMessage className="text-red-500">
+                      {error}
+                    </FormMessage>
+                  )}
                   <FormField
                     control={form.control}
                     name="new_password"
@@ -325,6 +360,35 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="rounded-3xl border-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-black text-xl">Apakah Anda yakin?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Password Anda akan segera diubah. Pastikan Anda mengingat password baru untuk login berikutnya.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="rounded-xl font-bold border-none bg-gray-100 hover:bg-gray-200">Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                confirmPasswordChange();
+              }}
+              disabled={submitting}
+              className="rounded-xl font-bold bg-blue-600 hover:bg-blue-700"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Memproses...
+                </>
+              ) : "Ya, Ganti Password"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AuthRoleGuard>
   );
 }

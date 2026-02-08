@@ -460,7 +460,7 @@ export default function PengembalianPage() {
                   <Button
                     onClick={handleSubmitReturn}
                     disabled={submitting}
-                    className="flex-[2] bg-blue-900 hover:bg-black h-16 rounded-2xl font-black text-lg shadow-xl"
+                    className="flex-2 bg-blue-900 hover:bg-black h-16 rounded-2xl font-black text-lg shadow-xl"
                   >
                     {submitting ? (
                       <Loader2 className="mr-2 h-6 w-6 animate-spin" />

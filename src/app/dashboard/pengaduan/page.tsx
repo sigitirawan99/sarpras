@@ -140,7 +140,6 @@ export default function PengaduanPage() {
     }
   };
 
-
   const totalPages = Math.ceil(totalCount / pageSize);
 
   const getStatusBadge = (status: PengaduanStatus) => {
@@ -204,7 +203,7 @@ export default function PengaduanPage() {
 
   return (
     <AuthRoleGuard>
-      <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
+      <div className="space-y-8 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-blue-900">
@@ -290,7 +289,9 @@ export default function PengaduanPage() {
                       <p className="text-xs font-bold text-gray-900 leading-none">
                         {complaint.profile?.nama_lengkap}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">Pelapor</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Pelapor
+                      </p>
                     </div>
                   </div>
 
@@ -333,60 +334,79 @@ export default function PengaduanPage() {
         {/* PAGINATION */}
         {!loading && totalPages > 1 && (
           <div className="flex items-center justify-between px-2 py-4">
-             <p className="text-xs text-muted-foreground font-medium">
-                Menampilkan <span className="font-bold text-gray-900">{filteredData.length}</span> dari <span className="font-bold text-gray-900">{totalCount}</span> data
-             </p>
-             <Pagination className="mx-0 w-auto">
-               <PaginationContent>
-                 <PaginationItem>
-                   <PaginationPrevious 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage > 1) setCurrentPage(currentPage - 1);
-                      }}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                   />
-                 </PaginationItem>
-                 
-                 {[...Array(totalPages)].map((_, i) => {
-                   const pageNum = i + 1;
-                   if (totalPages > 5) {
-                      if (pageNum !== 1 && pageNum !== totalPages && Math.abs(pageNum - currentPage) > 1) {
-                        if (Math.abs(pageNum - currentPage) === 2) return <PaginationEllipsis key={pageNum} />;
-                        return null;
-                      }
-                   }
+            <p className="text-xs text-muted-foreground font-medium">
+              Menampilkan{" "}
+              <span className="font-bold text-gray-900">
+                {filteredData.length}
+              </span>{" "}
+              dari <span className="font-bold text-gray-900">{totalCount}</span>{" "}
+              data
+            </p>
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage > 1) setCurrentPage(currentPage - 1);
+                    }}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
 
-                   return (
-                     <PaginationItem key={pageNum}>
-                       <PaginationLink 
-                          href="#" 
-                          isActive={currentPage === pageNum}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(pageNum);
-                          }}
-                          className="cursor-pointer"
-                       >
-                         {pageNum}
-                       </PaginationLink>
-                     </PaginationItem>
-                   );
-                 })}
+                {[...Array(totalPages)].map((_, i) => {
+                  const pageNum = i + 1;
+                  if (totalPages > 5) {
+                    if (
+                      pageNum !== 1 &&
+                      pageNum !== totalPages &&
+                      Math.abs(pageNum - currentPage) > 1
+                    ) {
+                      if (Math.abs(pageNum - currentPage) === 2)
+                        return <PaginationEllipsis key={pageNum} />;
+                      return null;
+                    }
+                  }
 
-                 <PaginationItem>
-                   <PaginationNext 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                      }}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                   />
-                 </PaginationItem>
-               </PaginationContent>
-             </Pagination>
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href="#"
+                        isActive={currentPage === pageNum}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(pageNum);
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (currentPage < totalPages)
+                        setCurrentPage(currentPage + 1);
+                    }}
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </div>
         )}
 
@@ -460,7 +480,10 @@ export default function PengaduanPage() {
                                   {p.status}
                                 </p>
                                 <span className="text-[9px] font-bold text-muted-foreground">
-                                  {format(new Date(p.created_at), "dd MMM HH:mm")}
+                                  {format(
+                                    new Date(p.created_at),
+                                    "dd MMM HH:mm",
+                                  )}
                                 </span>
                               </div>
                               <p className="text-xs text-gray-600 leading-snug">

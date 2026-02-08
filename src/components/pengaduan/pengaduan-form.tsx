@@ -26,7 +26,15 @@ import {
 import { Sarpras } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { Camera, Loader2 } from "lucide-react";
+import {
+  FileText,
+  MapPin,
+  AlertTriangle,
+  Package,
+  AlignLeft,
+  Camera,
+  Loader2,
+} from "lucide-react";
 
 const pengaduanSchema = z.object({
   judul: z.string().min(5, "Judul minimal 5 karakter"),
@@ -102,7 +110,10 @@ export function PengaduanForm({
           name="judul"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Subjek / Judul</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-500" />
+                Subjek / Judul
+              </FormLabel>
               <FormControl>
                 <Input placeholder="Contoh: AC Lab 1 Tidak Dingin" {...field} />
               </FormControl>
@@ -111,13 +122,16 @@ export function PengaduanForm({
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="lokasi"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Ruangan / Lokasi</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-500" />
+                  Ruangan / Lokasi
+                </FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Misal: Lantai 2, Ruang Kelas 12A"
@@ -133,7 +147,10 @@ export function PengaduanForm({
             name="prioritas"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Prioritas</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-blue-500" />
+                  Prioritas
+                </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -161,7 +178,10 @@ export function PengaduanForm({
           name="sarpras_id"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Jenis Sarpras (Opsional)</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <Package className="h-4 w-4 text-blue-500" />
+                Jenis Sarpras (Opsional)
+              </FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value || ""}
@@ -192,11 +212,14 @@ export function PengaduanForm({
           name="deskripsi"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Deskripsi Masalah</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <AlignLeft className="h-4 w-4 text-blue-500" />
+                Deskripsi Masalah
+              </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Jelaskan secara detail apa yang terjadi..."
-                  className="min-h-30"
+                  className="min-h-32"
                   {...field}
                 />
               </FormControl>
@@ -206,7 +229,10 @@ export function PengaduanForm({
         />
 
         <div className="space-y-3">
-          <FormLabel>Foto Bukti (Opsional)</FormLabel>
+          <FormLabel className="flex items-center gap-2">
+            <Camera className="h-4 w-4 text-blue-500" />
+            Foto Bukti (Opsional)
+          </FormLabel>
           <div className="flex items-center gap-4">
             {form.watch("foto") ? null : (
               <div className="w-24 h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400">
@@ -219,7 +245,7 @@ export function PengaduanForm({
                 accept="image/*"
                 onChange={handleFotoUpload}
                 disabled={uploading}
-                className="rounded-xl border-gray-200"
+                className="rounded-xl border-gray-200 cursor-pointer"
               />
             </div>
           </div>
@@ -228,7 +254,7 @@ export function PengaduanForm({
         <div className="pt-4">
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 h-12 rounded-xl text-lg font-bold shadow-lg shadow-blue-200"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-12 rounded-xl text-lg font-bold shadow-lg shadow-blue-200 transition-all active:scale-[0.98]"
             disabled={loading || uploading}
           >
             {loading ? (
