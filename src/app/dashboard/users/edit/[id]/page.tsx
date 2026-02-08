@@ -53,6 +53,7 @@ export default function EditUserPage({
         id,
         {
           nama_lengkap: values.nama_lengkap,
+          username: values.username,
           role: values.role,
           email: values.email || null,
           no_telepon: values.no_telepon || null,
@@ -95,24 +96,26 @@ export default function EditUserPage({
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-4">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => router.back()}
-          className="rounded-full"
+          className="rounded-full shadow-sm"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Edit User</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Edit User
+          </h1>
           <p className="text-muted-foreground text-sm">
             Ubah informasi akun pengguna.
           </p>
         </div>
       </div>
 
-      <Card className="border-none shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-lg">Formulir User</CardTitle>
+      <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl font-semibold">Formulir User</CardTitle>
         </CardHeader>
         <CardContent>
           <UserForm

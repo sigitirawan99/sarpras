@@ -51,13 +51,23 @@ export const updateProfile = async (id: string, payload: Partial<Profile>, updat
 };
 
 export const changeUserPassword = async (profileId: string, newPassword: string, oldPassword = "admin") => {
-  const { error } = await supabase.rpc("change_user_password", {
+  const { data, error } = await supabase.rpc("change_user_password", {
     p_profile_id: profileId,
     p_new_password: newPassword,
     p_old_password: oldPassword,
   });
 
   if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || "Password lama salah");
+
+  // Record activity log
+  await recordActivityLog({
+    user_id: profileId,
+    action: "CHANGE_PASSWORD",
+    module: "USER",
+    description: `Password user ${profileId} diubah`,
+    data_after: { password: newPassword }
+  });
 };
 
 export const signUpWithUsername = async (payload: {

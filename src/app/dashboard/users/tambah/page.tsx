@@ -35,7 +35,11 @@ export default function TambahUserPage() {
       router.refresh();
     } catch (error: any) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Terjadi kesalahan saat menambahkan user");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat menambahkan user",
+      );
     } finally {
       setLoading(false);
     }
@@ -45,24 +49,26 @@ export default function TambahUserPage() {
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-4">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => router.back()}
-          className="rounded-full"
+          className="rounded-full shadow-sm"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tambah User</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Tambah User
+          </h1>
           <p className="text-muted-foreground text-sm">
             Buat akun pengguna baru dalam sistem.
           </p>
         </div>
       </div>
 
-      <Card className="border-none shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-lg">Formulir User</CardTitle>
+      <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl font-semibold">Formulir User</CardTitle>
         </CardHeader>
         <CardContent>
           <UserForm onSubmit={handleSubmit} loading={loading} />

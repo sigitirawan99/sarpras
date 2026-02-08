@@ -21,14 +21,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Profile } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import {
+  User,
+  Lock,
+  BadgeCheck,
+  Briefcase,
+  ShieldCheck,
+  Mail,
+  Phone,
+  Loader2,
+} from "lucide-react";
 
 const userSchema = z.object({
   username: z.string().min(3, "Username minimal 3 karakter"),
-  password: z.string().min(6, "Password minimal 6 karakter").optional().or(z.literal("")),
+  password: z
+    .string()
+    .min(6, "Password minimal 6 karakter")
+    .optional()
+    .or(z.literal("")),
   nama_lengkap: z.string().min(2, "Nama lengkap minimal 2 karakter"),
   role: z.enum(["admin", "petugas", "pengguna"]),
-  email: z.string().email("Email tidak valid").nullable().optional().or(z.literal("")),
+  email: z
+    .string()
+    .email("Email tidak valid")
+    .nullable()
+    .optional()
+    .or(z.literal("")),
   no_telepon: z.string().nullable().optional().or(z.literal("")),
   is_active: z.boolean(),
 });
@@ -61,41 +79,53 @@ export function UserForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input {...field} disabled={!!initialData} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {initialData ? "Ganti Password (Kosongkan jika tidak diubah)" : "Password"}
-              </FormLabel>
-              <FormControl>
-                <Input type="password" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-blue-500" />
+                  Username
+                </FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-blue-500" />
+                  {initialData
+                    ? "Ganti Password (Kosongkan jika tidak diubah)"
+                    : "Password"}
+                </FormLabel>
+                <FormControl>
+                  <Input type="password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
           name="nama_lengkap"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nama Lengkap</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <BadgeCheck className="h-4 w-4 text-blue-500" />
+                Nama Lengkap
+              </FormLabel>
               <FormControl>
                 <Input {...field} placeholder="Nama Sesuai KTP/Kartu Pelajar" />
               </FormControl>
@@ -103,15 +133,22 @@ export function UserForm({
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="role"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Role</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
+                <FormLabel className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-blue-500" />
+                  Role
+                </FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl className="w-full">
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih Role" />
                     </SelectTrigger>
@@ -131,12 +168,15 @@ export function UserForm({
             name="is_active"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status Akun</FormLabel>
+                <FormLabel className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-blue-500" />
+                  Status Akun
+                </FormLabel>
                 <Select
                   onValueChange={(val) => field.onChange(val === "true")}
                   defaultValue={field.value ? "true" : "false"}
                 >
-                  <FormControl>
+                  <FormControl className="w-full">
                     <SelectTrigger>
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -151,35 +191,49 @@ export function UserForm({
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" {...field} value={field.value || ""} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="no_telepon"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>No. Telepon</FormLabel>
-              <FormControl>
-                <Input {...field} value={field.value || ""} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-blue-500" />
+                  Email
+                </FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} value={field.value || ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="no_telepon"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-blue-500" />
+                  No. Telepon
+                </FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value || ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <div className="pt-4">
-          <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          <Button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-11 text-md font-semibold transition-all shadow-md active:scale-[0.98]"
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
             {initialData ? "Simpan Perubahan" : "Simpan User"}
           </Button>
         </div>

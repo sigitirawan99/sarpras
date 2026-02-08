@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Kategori } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import { Tags, Info, Loader2 } from "lucide-react";
 
 const kategoriSchema = z.object({
   nama: z.string().min(2, "Nama minimal 2 karakter"),
@@ -44,13 +44,16 @@ export function KategoriForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="nama"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nama Kategori</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <Tags className="h-4 w-4 text-blue-500" />
+                Nama Kategori
+              </FormLabel>
               <FormControl>
                 <Input placeholder="Contoh: Elektronik" {...field} />
               </FormControl>
@@ -63,7 +66,10 @@ export function KategoriForm({
           name="deskripsi"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Deskripsi</FormLabel>
+              <FormLabel className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-500" />
+                Deskripsi
+              </FormLabel>
               <FormControl>
                 <Input placeholder="Keterangan singkat..." {...field} />
               </FormControl>
@@ -74,10 +80,10 @@ export function KategoriForm({
         <div className="pt-4">
           <Button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-11 text-md font-semibold transition-all shadow-md active:scale-[0.98]"
             disabled={loading}
           >
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
             {initialData ? "Simpan Perubahan" : "Simpan Kategori"}
           </Button>
         </div>

@@ -83,9 +83,9 @@ export function LoginForm() {
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nama</FormLabel>
+                        <FormLabel>Username</FormLabel>
                         <FormControl>
-                          <Input placeholder="Masukan Nama" {...field} />
+                          <Input placeholder="Masukan Username" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

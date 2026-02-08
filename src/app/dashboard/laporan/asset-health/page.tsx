@@ -221,10 +221,10 @@ export default function AssetHealthPage() {
 
   return (
     <AuthRoleGuard allowedRoles={["admin", "petugas"]}>
-      <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
+      <div className="space-y-8 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-blue-900">
               Analitik Kesehatan Aset
             </h1>
             <p className="text-muted-foreground">
@@ -322,8 +322,8 @@ export default function AssetHealthPage() {
           <Card className="border-none shadow-xl rounded-3xl overflow-hidden">
             <CardHeader className="bg-gray-50/50">
               <CardTitle className="text-lg font-black flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-red-600" /> Aset Paling Sering
-                Bermasalah
+                <TrendingUp className="h-5 w-5 text-red-600" /> Aset Paling
+                Sering Bermasalah
               </CardTitle>
               <CardDescription>
                 Top 5 aset dengan frekuensi laporan kerusakan tertinggi.

@@ -81,27 +81,29 @@ export default function EditSarprasPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => router.back()}
-          className="rounded-full"
+          className="rounded-full shadow-sm"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Edit Sarpras</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Edit Sarpras
+          </h1>
           <p className="text-muted-foreground text-sm">
             Perbarui informasi sarana dan prasarana.
           </p>
         </div>
       </div>
 
-      <Card className="border-none shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-lg">Formulir Edit Sarpras</CardTitle>
+      <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl font-semibold">Formulir Edit Sarpras</CardTitle>
         </CardHeader>
         <CardContent>
           <SarprasForm
